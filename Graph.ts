@@ -60,12 +60,13 @@ function aStarSearch<Node> (
         path: [start],
         cost: 0
     };
-    while (result.path.length < 3) {
-        var edge : Edge<Node> = graph.outgoingEdges(start) [0];
-        if (! edge) break;
-        start = edge.to;
-        result.path.push(start);
-        result.cost += edge.cost;
+
+    let frontier : collections.PriorityQueue<Node> = new collections.PriorityQueue<Node>();
+    frontier.enqueue(start);
+
+
+    while (!frontier.isEmpty) {
+        // do stuff
     }
     return result;
 }
