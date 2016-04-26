@@ -54,22 +54,78 @@ function aStarSearch<Node> (
     goal : (n:Node) => boolean,
     heuristics : (n:Node) => number,
     timeout : number
-) : SearchResult<Node> {
-    // A dummy search result: it just picks the first possible neighbour
-    var result : SearchResult<Node> = {
-        path: [start],
-        cost: 0
-    };
-    while (result.path.length < 3) {
-        var edge : Edge<Node> = graph.outgoingEdges(start) [0];
-        if (! edge) break;
-        start = edge.to;
-        result.path.push(start);
-        result.cost += edge.cost;
-    }
+): SearchResult<Node> {
+
+	var result : SearchResult<Node> = {
+		path: [],
+		cost: 0
+	};
+
+	var frontier: collections.PriorityQueue<Node> = new collections.PriorityQueue<Node>((nodeA, nodeB) => {
+		var totalCostA: number = (totalCost.containsKey(nodeA) ? totalCost.getValue(nodeA) : Infinity);
+		var totalCostB: number = (totalCost.containsKey(nodeB) ? totalCost.getValue(nodeB) : Infinity);
+
+		return totalCostB - totalCostA;
+	});
+
+	frontier.enqueue(start);
+
+	var pathCost: collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
+	pathCost.setValue(start, 0);
+	var totalCost: collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
+	pathCost.setValue(start, pathCost.getValue(start) + heuristics(start));
+
+	var cameFrom: collections.Dictionary<Node, Node> = new collections.Dictionary<Node, Node>();
+
+	var closedNodes: collections.LinkedList<Node> = new collections.LinkedList<Node>();
+
+	while (!frontier.isEmpty()) {
+		var currentNode: Node = frontier.dequeue();
+		closedNodes.add(currentNode);
+
+		if (goal(currentNode)) {
+            result.path = backtrack(start, currentNode, cameFrom);
+            result.cost = pathCost.getValue(currentNode);
+            return result;
+        }
+
+		for (var edge of graph.outgoingEdges(start)) {
+			if (!closedNodes.contains(edge.to)) {
+				var tempPathCost: number = pathCost.containsKey(currentNode) ? pathCost.getValue(currentNode) + edge.cost : Infinity;
+
+				if (!frontier.contains(edge.to)) frontier.enqueue(edge.to);
+				else if (tempPathCost >= pathCost.getValue(edge.to)) continue;
+
+				pathCost.setValue(edge.to, tempPathCost);
+				totalCost.setValue(edge.to, tempPathCost + heuristics(edge.to));
+
+				cameFrom.setValue(edge.to, currentNode);
+			}
+		}
+	}
+
     return result;
 }
 
+function backtrack<Node>(
+	start: Node,
+	goal: Node,
+	cameFrom: collections.Dictionary<Node, Node>
+): Node[] {
+	return recursiveBacktracking(start, [goal], cameFrom);
+}
+
+function recursiveBacktracking<Node>(
+	start: Node,
+	pathSoFar: Node[],
+	cameFrom: collections.Dictionary<Node, Node>
+): Node[] {
+	if (pathSoFar[0] === start) {
+		return pathSoFar;
+	}
+
+	return pathSoFar.concat(cameFrom.getValue(pathSoFar[0]));
+}
 
 //////////////////////////////////////////////////////////////////////
 // here is an example graph
