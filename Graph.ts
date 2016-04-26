@@ -55,31 +55,33 @@ function aStarSearch<Node>(
     heuristics: (n: Node) => number,
     timeout: number
 ): SearchResult<Node> {
-
+    
     let result: SearchResult<Node> = {
         path: [start],
         cost: 0
     };
 
     let openSet: collections.PriorityQueue<Node> = new collections.PriorityQueue<Node>((a, b) => {
-        let fa: number = fScores.getValue(a);
-        let fb: number = fScores.getValue(b);
-        if (fa < fb) return -1;
-        if (fa == fb) return 0;
-        if (fa > fb) return 1;
+        let fa: number = fScores.containsKey(a) ? fScores.getValue(a) : Infinity;
+        let fb: number = fScores.containsKey(b) ? fScores.getValue(b) : Infinity;
+        if (fa < fb) return 1;
+        if (fa === fb) return 0;
+        else return -1;
     });
     openSet.enqueue(start);
 
     let closedSet: collections.Set<Node> = new collections.Set<Node>();
 
     let gScores: collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
+    gScores.setValue(start, 0);
     let fScores: collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
-
+    fScores.setValue(start, heuristics(start));
     let cameFrom: collections.Dictionary<Node, Node> = new collections.Dictionary<Node, Node>();
 
 
-    while (!openSet.isEmpty) {
+    while (!openSet.isEmpty()) {
         let current: Node = openSet.dequeue();
+                
         if (goal(current)) {
             result.path = backtrack(cameFrom, current, start);
             result.cost = gScores.getValue(current);
@@ -90,7 +92,7 @@ function aStarSearch<Node>(
         graph.outgoingEdges(current).forEach(edge => {
             if (closedSet.contains(edge.to)) return; //continue;
 
-            let tempgScore: number = gScores.getValue(current) + edge.cost;
+            let tempgScore: number = gScores.containsKey(current) ?  gScores.getValue(current) + edge.cost : Infinity;
             if (!openSet.contains(edge.to)) openSet.enqueue(edge.to)
             else if (tempgScore >= gScores.getValue(edge.to)) return;
 
@@ -101,7 +103,7 @@ function aStarSearch<Node>(
     }
 
     //Failure: timeout or no path    
-    return result;
+    return result;   
 }
 
 function backtrack<Node>(
@@ -117,7 +119,6 @@ function backtrack<Node>(
         current = cameFrom.getValue(current);
         path.unshift(current);
     }
-    path.unshift(start);
 
     return path;
 }
