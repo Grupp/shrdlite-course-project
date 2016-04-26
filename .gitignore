@@ -1,5 +1,5 @@
 shrdlite-*.js
-
+*.js
 
 # Created by https://www.gitignore.io/api/linux,vim
 
@@ -27,3 +27,6 @@ Session.vim
 *~
 # auto-generated tag files
 tags
+
+### VisualStudioCode ###
+.vscode
