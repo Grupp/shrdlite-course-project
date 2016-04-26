@@ -33,6 +33,7 @@ class SearchResult<Node> {
     cost : number;
 }
 
+
 /**
 * A\* search implementation, parameterised by a `Node` type. The code
 * here is just a template; you should rewrite this function
@@ -61,16 +62,78 @@ function aStarSearch<Node> (
         cost: 0
     };
 
-    let frontier : collections.PriorityQueue<Node> = new collections.PriorityQueue<Node>();
-    frontier.enqueue(start);
+    // start timer
 
+    // create froniter as a PriorityQueue and add create a comparator that compares nodes
+    // wrt the f value
+    let costDict :collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
+    let fValDict :collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
+    let parentDict :collections.Dictionary<Node, Node> = new collections.Dictionary<Node, Node>();
+    let frontier : collections.PriorityQueue<Node> = new collections.PriorityQueue<Node>((a, b)=> {
+    let fa :number = costDict.containsKey(a) ? costDict.getValue(a) : Infinity;
+    let fb :number = costDict.containsKey(b) ? costDict.getValue(b) : Infinity;
+      //let fb :number = b.cost + heuristics(b.node);
+
+      if (fa == fb) return 0;
+      return fa < fb ? 1 : -1;
+    });
+
+    // init A*
+    //let openList : collections.Set<Node> = new collections.Set<Node>();
+    let visited : collections.Set<Node> = new collections.Set<Node>();
+    frontier.enqueue(start);
+    costDict.setValue(start, 0);
+    fValDict.setValue(start, 0);
 
     while (!frontier.isEmpty) {
-        // do stuff
+
+
+        let current : Node = frontier.dequeue();
+        if (goal(current)){
+          // do stuff like generate the path
+          // calculate the cost
+          result.path = followParent(start, current, parentDict);
+          result.cost = costDict.getValue(current);
+          return result;
+        }
+
+        // add new nodes to frontier
+        graph.outgoingEdges(current).forEach(edge => {
+              let next : Node = edge.to;
+              let fVal : number = costDict.getValue(current) + heuristics(next);
+              // if already visited with a lower fValue
+              if (visited.contains(next) &&  fVal > fValDict.getValue(next)){
+                return;
+              }
+              if (frontier.contains(next) && fVal > fValDict.getValue(next) )
+                return;
+
+              parentDict.setValue(next,current);
+              costDict.setValue(next, edge.cost +  costDict.getValue(current));
+              fValDict.setValue(next, fVal);
+              frontier.enqueue(next);
+              return;
+        });
+        visited.add(current);
     }
-    return result;
+    // failure
+    return;
 }
 
+function followParent(
+  start : Node,
+  goal : Node,
+  parentDict : collections.Dictionary<Node, Node>) : Node[] {
+
+  let current : Node
+  let path : Node[];
+  do
+  {
+    current = parentDict.getValue(goal);
+    path.push(current);
+  } while (current != start)
+  return path;
+}
 
 //////////////////////////////////////////////////////////////////////
 // here is an example graph
