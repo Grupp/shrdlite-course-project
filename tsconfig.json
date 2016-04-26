@@ -1,6 +1,7 @@
 {
    "compileOnSave": true,
    "compilerOptions": {
-       "noImplicitAny" : true
+       "noImplicitAny" : true,
+       "watch": true
    }
 }

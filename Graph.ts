@@ -56,6 +56,9 @@ function aStarSearch<Node>(
     timeout: number
 ): SearchResult<Node> {
     
+    let time: Date = new Date();
+    let startTime: number = time.getTime();
+    
     let result: SearchResult<Node> = {
         path: [start],
         cost: 0
@@ -78,9 +81,9 @@ function aStarSearch<Node>(
     fScores.setValue(start, heuristics(start));
     let cameFrom: collections.Dictionary<Node, Node> = new collections.Dictionary<Node, Node>();
 
-
-    while (!openSet.isEmpty()) {
-        let current: Node = openSet.dequeue();
+    let current: Node;
+    while (!openSet.isEmpty() && startTime + timeout > time.getTime()) {
+        current = openSet.dequeue();
                 
         if (goal(current)) {
             result.path = backtrack(cameFrom, current, start);
@@ -89,17 +92,19 @@ function aStarSearch<Node>(
         }
 
         closedSet.add(current);
-        graph.outgoingEdges(current).forEach(edge => {
-            if (closedSet.contains(edge.to)) return; //continue;
+        
+        for (let edge of graph.outgoingEdges(current)) {
+            if(startTime + timeout > time.getTime()) break;
+            if (closedSet.contains(edge.to)) continue;
 
             let tempgScore: number = gScores.containsKey(current) ?  gScores.getValue(current) + edge.cost : Infinity;
             if (!openSet.contains(edge.to)) openSet.enqueue(edge.to)
-            else if (tempgScore >= gScores.getValue(edge.to)) return;
+            else if (tempgScore >= gScores.getValue(edge.to)) continue;
 
             cameFrom.setValue(edge.to, current);
             gScores.setValue(edge.to, tempgScore);
             fScores.setValue(edge.to, tempgScore + heuristics(edge.to));
-        });
+        }
     }
 
     //Failure: timeout or no path    
