@@ -66,8 +66,8 @@ function aStarSearch<Node> (
 
     // create froniter as a PriorityQueue and add create a comparator that compares nodes wrt the f-value
     let frontier : collections.PriorityQueue<Node> = new collections.PriorityQueue<Node>((a, b)=> {
-      let fa : number = costDict.containsKey(a) ? costDict.getValue(a) : Infinity;
-      let fb : number = costDict.containsKey(b) ? costDict.getValue(b) : Infinity;
+      let fa : number = fValDict.containsKey(a) ? fValDict.getValue(a) : Infinity;
+      let fb : number = fValDict.containsKey(b) ? fValDict.getValue(b) : Infinity;
 
       if (fa === fb) return 0;
       return fa < fb ? 1 : -1;
@@ -75,9 +75,9 @@ function aStarSearch<Node> (
 
     // init A*
     let visited : collections.Set<Node> = new collections.Set<Node>();
-    frontier.enqueue(start);
     costDict.setValue(start, 0);
     fValDict.setValue(start, heuristics(start));
+    frontier.enqueue(start);
 
     while (!frontier.isEmpty()) {
         if (Date.now() - startTime > timeout){
