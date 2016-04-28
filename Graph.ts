@@ -77,16 +77,11 @@ function aStarSearch<Node>(
         fa = fa != undefined ? fa : Infinity;
         fb = fb != undefined ? fb : Infinity;
         return fa - fb;
-        /*
-        if (fa < fb) return -1;
-        if (fa === fb) return 0;
-        else return 1;*/
     });
     openSet.add(start);
 
     let closedSet: collections.Set<Node> = new collections.Set<Node>();
 
-    let i: number = 0;
     let current: Node;
     while (!openSet.isEmpty() || startTime + timeout > time.getTime()) {
         current = openSet.removeRoot();
@@ -108,12 +103,10 @@ function aStarSearch<Node>(
             if (goal(edge.to)) {
                 result.path = backtrack(cameFrom, edge.to, start);
                 result.cost = gScores.getValue(edge.to);
-                console.log(i);
                 return result;
             }
 
             openSet.add(edge.to);
-            i += 1;
         }
     }
 
