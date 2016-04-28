@@ -102,7 +102,7 @@ function runAllTests(argv : string[]) : void {
         tests = argv.map((n) => parseInt(n));
     }
     var manhattanTime = 0, noHeuristicsTime = 0;
-    for (var manhattan of [false, true]) {
+    for (var manhattan of [true, false]) {
         console.log("===================================================================================");
         console.log("===== Running " + tests.length + " tests with " + (manhattan ? "Manhattan" : "no") + " heuristics");
         console.log();

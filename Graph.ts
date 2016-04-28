@@ -55,11 +55,11 @@ function aStarSearch<Node>(
     heuristics: (n: Node) => number,
     timeout: number
 ): SearchResult<Node> {
-    
+
     timeout *= 1000;
     let time: Date = new Date();
     let startTime: number = time.getTime();
-    
+
     let result: SearchResult<Node> = {
         path: [start],
         cost: 0
@@ -76,47 +76,49 @@ function aStarSearch<Node>(
         let fb: number = fScores.getValue(b);
         fa = fa != undefined ? fa : Infinity;
         fb = fb != undefined ? fb : Infinity;
+        return fa - fb;
+        /*
         if (fa < fb) return -1;
         if (fa === fb) return 0;
-        else return 1;
+        else return 1;*/
     });
     openSet.add(start);
 
     let closedSet: collections.Set<Node> = new collections.Set<Node>();
-    
-    let i:number = 0;
+
+    let i: number = 0;
     let current: Node;
-    while (!openSet.isEmpty()) {
+    while (!openSet.isEmpty() || startTime + timeout > time.getTime()) {
         current = openSet.removeRoot();
-                
-        if (goal(current)) {
-            result.path = backtrack(cameFrom, current, start);
-            result.cost = gScores.getValue(current);
-            console.log(i);
-            return result;
-        }
 
         closedSet.add(current);
-        
+
         for (let edge of graph.outgoingEdges(current)) {
-            if (startTime + timeout < time.getTime()) return result;
             if (closedSet.contains(edge.to)) continue;
 
             let tempGScore: number = gScores.getValue(current)
             tempGScore = tempGScore != undefined ? tempGScore + edge.cost : Infinity;
             let theGScore = gScores.getValue(edge.to);
             if (openSet.contains(edge.to) && (theGScore == undefined || tempGScore >= theGScore)) continue;
-                        
+
             cameFrom.setValue(edge.to, current);
             gScores.setValue(edge.to, tempGScore);
             fScores.setValue(edge.to, tempGScore + heuristics(edge.to));
+
+            if (goal(edge.to)) {
+                result.path = backtrack(cameFrom, edge.to, start);
+                result.cost = gScores.getValue(edge.to);
+                console.log(i);
+                return result;
+            }
+
             openSet.add(edge.to);
             i += 1;
         }
     }
 
     //Failure: timeout or no path    
-    return result;   
+    return result;
 }
 
 function backtrack<Node>(
