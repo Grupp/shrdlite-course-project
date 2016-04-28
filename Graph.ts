@@ -71,6 +71,7 @@ function aStarSearch<Node> (
 
       if (fa === fb) return 0;
       return fa < fb ? 1 : -1;
+      //return fb-fa;
     });
 
     // init A*
@@ -84,30 +85,34 @@ function aStarSearch<Node> (
           console.log("Timeout!");
           break;
         }
-        let current : Node = frontier.dequeue();
 
-        if (goal(current)){
-          result.path = followParent(start, current, parentDict);
-          result.cost = costDict.getValue(current);
-          return result;
-        }
+        let current : Node = frontier.dequeue();
 
         // add new nodes to frontier
         for (let edge of graph.outgoingEdges(current)){
+
               let next : Node = edge.to;
               let costNext : number = costDict.getValue(current) + edge.cost;
               let fVal : number = costNext + heuristics(next);
+              let oldFVal : number = fValDict.containsKey(next) ? fValDict.getValue(next) : Infinity;
               // if already visited with a lower f-value
-              if (visited.contains(next) && fVal >= fValDict.getValue(next)){
+              if (visited.contains(next)){
                 continue;
               } // if multiple paths
-              if (frontier.contains(next) && fVal >= fValDict.getValue(next)){
+              if (frontier.contains(next) && fVal >= oldFVal){
                 continue;
               }
               // update values and add to the frontier
               parentDict.setValue(next,current);
               costDict.setValue(next, costNext);
               fValDict.setValue(next, fVal);
+
+              if (goal(next)){
+                result.path = followParent(start, next, parentDict);
+                result.cost = costDict.getValue(next);
+                return result;
+              }
+
               frontier.enqueue(next);
         }
         visited.add(current);
