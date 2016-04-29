@@ -47,7 +47,7 @@ class SearchResult<Node> {
 * @param heuristics The heuristic function. Used to estimate the cost of reaching the goal from a given Node.
 * @param timeout Maximum time (in seconds) to spend performing A\* search.
 * @returns A search result, which contains the path from `start` to a node satisfying `goal` and the cost of this path.
-*/
+*/       
 function aStarSearch<Node>(
     graph: Graph<Node>,
     start: Node,
@@ -86,6 +86,12 @@ function aStarSearch<Node>(
     while (!openSet.isEmpty() || startTime + timeout > time.getTime()) {
         current = openSet.removeRoot();
 
+        if (goal(edge.to)) {
+            result.path = backtrack(cameFrom, edge.to, start);
+            result.cost = gScores.getValue(edge.to);
+            return result;
+        }
+        
         closedSet.add(current);
 
         for (let edge of graph.outgoingEdges(current)) {
@@ -99,12 +105,6 @@ function aStarSearch<Node>(
             cameFrom.setValue(edge.to, current);
             gScores.setValue(edge.to, tempGScore);
             fScores.setValue(edge.to, tempGScore + heuristics(edge.to));
-
-            if (goal(edge.to)) {
-                result.path = backtrack(cameFrom, edge.to, start);
-                result.cost = gScores.getValue(edge.to);
-                return result;
-            }
 
             openSet.add(edge.to);
         }
