@@ -88,6 +88,13 @@ function aStarSearch<Node> (
 
         let current : Node = frontier.dequeue();
 
+
+        if (goal(current)){
+          result.path = followParent(start, current, parentDict);
+          result.cost = costDict.getValue(current);
+          return result;
+        }
+        
         // add new nodes to frontier
         for (let edge of graph.outgoingEdges(current)){
 
@@ -106,12 +113,6 @@ function aStarSearch<Node> (
               parentDict.setValue(next,current);
               costDict.setValue(next, costNext);
               fValDict.setValue(next, fVal);
-
-              if (goal(next)){
-                result.path = followParent(start, next, parentDict);
-                result.cost = costDict.getValue(next);
-                return result;
-              }
 
               frontier.enqueue(next);
         }
