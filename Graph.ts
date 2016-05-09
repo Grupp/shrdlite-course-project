@@ -12,25 +12,25 @@
 
 /** An edge in a graph. */
 class Edge<Node> {
-    from : Node;
-    to   : Node;
-    cost : number;
+    from: Node;
+    to: Node;
+    cost: number;
 }
 
 /** A directed graph. */
 interface Graph<Node> {
     /** Computes the edges that leave from a node. */
-    outgoingEdges(node : Node) : Edge<Node>[];
+    outgoingEdges(node: Node): Edge<Node>[];
     /** A function that compares nodes. */
-    compareNodes : collections.ICompareFunction<Node>;
+    compareNodes: collections.ICompareFunction<Node>;
 }
 
 /** Type that reports the result of a search. */
 class SearchResult<Node> {
     /** The path (sequence of Nodes) found by the search algorithm. */
-    path : Node[];
+    path: Node[];
     /** The total cost of the path. */
-    cost : number;
+    cost: number;
 }
 
 
@@ -44,95 +44,85 @@ class SearchResult<Node> {
 * @param timeout Maximum time (in seconds) to spend performing A\* search.
 * @returns A search result, which contains the path from `start` to a node satisfying `goal` and the cost of this path.
 */
-function aStarSearch<Node> (
-    graph : Graph<Node>,
-    start : Node,
-    goal : (n:Node) => boolean,
-    heuristics : (n:Node) => number,
-    timeout : number
-) : SearchResult<Node> {
-    var result : SearchResult<Node> = {
-        path: [],
-        cost: Infinity
+function aStarSearch<Node>(
+    graph: Graph<Node>,
+    start: Node,
+    goal: (n: Node) => boolean,
+    heuristics: (n: Node) => number,
+    timeout: number
+): SearchResult<Node> {
+
+    timeout *= 1000;
+    let time: Date = new Date();
+    let startTime: number = time.getTime();
+
+    let result: SearchResult<Node> = {
+        path: [start],
+        cost: 0
     };
 
-    // start timer
-    let startTime :number = Date.now();
+    let gScores: collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
+    gScores.setValue(start, 0);
+    let fScores: collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
+    fScores.setValue(start, heuristics(start));
+    let cameFrom: collections.Dictionary<Node, Node> = new collections.Dictionary<Node, Node>();
 
-    // store cost, f-value and path in dictionaries
-    let costDict :collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
-    let fValDict :collections.Dictionary<Node, number> = new collections.Dictionary<Node, number>();
-    let parentDict :collections.Dictionary<Node, Node> = new collections.Dictionary<Node, Node>();
-
-    // create froniter as a PriorityQueue and add create a comparator that compares nodes wrt the f-value
-    let frontier : collections.PriorityQueue<Node> = new collections.PriorityQueue<Node>((a, b)=> {
-      let fa : number = fValDict.containsKey(a) ? fValDict.getValue(a) : Infinity;
-      let fb : number = fValDict.containsKey(b) ? fValDict.getValue(b) : Infinity;
-
-      if (fa === fb) return 0;
-      return fa < fb ? 1 : -1;
-      //return fb-fa;
+    let openSet: collections.Heap<Node> = new collections.Heap<Node>((a, b) => {
+        let fa: number = fScores.getValue(a);
+        let fb: number = fScores.getValue(b);
+        fa = fa != undefined ? fa : Infinity;
+        fb = fb != undefined ? fb : Infinity;
+        return fa - fb;
     });
+    openSet.add(start);
 
-    // init A*
-    let visited : collections.Set<Node> = new collections.Set<Node>();
-    costDict.setValue(start, 0);
-    fValDict.setValue(start, heuristics(start));
-    frontier.enqueue(start);
+    let closedSet: collections.Set<Node> = new collections.Set<Node>();
 
-    while (!frontier.isEmpty()) {
-        if (Date.now() - startTime > 1000*timeout){
-          console.log("Timeout!");
-          break;
+    let current: Node;
+    while (!openSet.isEmpty() || startTime + timeout > time.getTime()) {
+        current = openSet.removeRoot();
+
+        if (goal(current)) {
+            result.path = backtrack(cameFrom, current, start);
+            result.cost = gScores.getValue(current);
+            return result;
         }
 
-        let current : Node = frontier.dequeue();
+        closedSet.add(current);
 
+        for (let edge of graph.outgoingEdges(current)) {
+            if (closedSet.contains(edge.to)) continue;
 
-        if (goal(current)){
-          result.path = followParent(start, current, parentDict);
-          result.cost = costDict.getValue(current);
-          return result;
+            let tempGScore: number = gScores.getValue(current)
+            tempGScore = tempGScore != undefined ? tempGScore + edge.cost : Infinity;
+            let theGScore = gScores.getValue(edge.to);
+            if (openSet.contains(edge.to) && (theGScore == undefined || tempGScore >= theGScore)) continue;
+
+            cameFrom.setValue(edge.to, current);
+            gScores.setValue(edge.to, tempGScore);
+            fScores.setValue(edge.to, tempGScore + heuristics(edge.to));
+
+            openSet.add(edge.to);
         }
-        
-        // add new nodes to frontier
-        for (let edge of graph.outgoingEdges(current)){
-
-              let next : Node = edge.to;
-              let costNext : number = costDict.getValue(current) + edge.cost;
-              let fVal : number = costNext + heuristics(next);
-              let oldFVal : number = fValDict.containsKey(next) ? fValDict.getValue(next) : Infinity;
-              // if already visited with a lower f-value
-              if (visited.contains(next)){
-                continue;
-              } // if multiple paths
-              if (frontier.contains(next) && fVal >= oldFVal){
-                continue;
-              }
-              // update values and add to the frontier
-              parentDict.setValue(next,current);
-              costDict.setValue(next, costNext);
-              fValDict.setValue(next, fVal);
-
-              frontier.enqueue(next);
-        }
-        visited.add(current);
     }
-    console.log("Failure! No path found");
-    return;
+
+    //Failure: timeout or no path
+    return result;
 }
 
-function followParent<Node>(
-  start : Node,
-  goal : Node,
-  parentDict : collections.Dictionary<Node, Node>) : Node[] {
+function backtrack<Node>(
+    cameFrom: collections.Dictionary<Node, Node>,
+    goal: Node,
+    start: Node
+): Node[] {
 
-  let current : Node = goal;
-  let path : Node[] = [goal];
-  while (current != start)
-  {
-    current = parentDict.getValue(current);
-    path.unshift(current);
-  }
-  return path;
+    let path: Node[] = [goal];
+
+    let current: Node = goal;
+    while (current != start) {
+        current = cameFrom.getValue(current);
+        path.unshift(current);
+    }
+
+    return path;
 }
