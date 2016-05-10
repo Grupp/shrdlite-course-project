@@ -33,14 +33,10 @@ class SearchResult<Node> {
     cost: number;
 }
 
+
 /**
-* A\* search implementation, parameterised by a `Node` type. The code
-* here is just a template; you should rewrite this function
-* entirely. In this template, the code produces a dummy search result
-* which just picks the first possible neighbour.
+* A\* search implementation, parameterised by a `Node` type.
 *
-* Note that you should not change the API (type) of this function,
-* only its body.
 * @param graph The graph on which to perform A\* search.
 * @param start The initial node.
 * @param goal A function that returns true when given a goal node. Used to determine if the algorithm has reached the goal.
