@@ -109,98 +109,78 @@ module Interpreter {
     // parse cmd
 
     // find out which objects that are mentioned
-
-    let goalObjects : goalObject[] = findGoalObject(cmd)
-    let a : goalObject = goalObjects[0]; // action object
-    let b : goalObject = goalObjects[1]; // location object
-
-
-    // does the parse make sense with the current world?
-    //see if the object is in the world
-    let aCandidates : string[] = [];
-    let bCandidates : string[] = [];
-    //let objects : string[] = state.objects;
-    for (let obj in state.objects){
-      //console.log(obj);
-      if(a.form === state.objects[obj].form){
-          if(a.size === null && a.color === null){
-            aCandidates.push(obj);
-          }
-          else {
+    //console.log("Hello " + cmd.command);
+    switch (cmd.command){
+      case 'take':
+        // find all objects in the world that matches the entity
+        let matchingObjects : string[] = findObjectsInWorld(cmd.entity, state);
+        let DNF : DNFFormula = [];
+          for (let obj of matchingObjects){
+            DNF.push([{polarity: true, relation: "holding", args: [obj]}]);
 
           }
-        }
-        if(b.form === state.objects[obj].form){
-            bCandidates.push(obj);
-          }
-        }
-        console.log("Candidates: " + aCandidates);
-        console.log("Candidates: " + bCandidates);
-        console.log("a object:" + a.form + " " + a.size + " " + a.color + " " + a.quantifier);
-        console.log("b object:" + b.form + " " + b.size + " " + b.color + " " + b.quantifier);
-        console.log(state);
-
-
-        // match form, size and color for each goalObject
-/*        var interpretation : DNFFormula = [[
-            {polarity: true, relation: "ontop", args: ['a', "floor"]},
-            {polarity: true, relation: "holding", args: ['a', 'b']}
-         ]];*/
-        // formulate goal by looking in the destination of the move command
+        return DNF;
+        //break;
+      case 'put':
+        console.log("PUT");
+        throw "Not implemented";
+      case 'move':
+        console.log("MOVE");
+        //let matchingActionObjects 
         var interpretation : DNFFormula = [[
-          {polarity: true, relation: cmd.location.relation, args: [a.form, b.form]}
+          {polarity: true, relation: "ontop", args: ['a', "floor"]},
+          {polarity: true, relation: "holding", args: ['a', 'b']}
         ]];
 
-        // similar for take and put
-        console.log(cmd);
-        return interpretation;
-      }
-
+        break;
+      default:
+        throw "Not implemented";
     }
 
-    /** A class that describes the goal objects */
-    class goalObject{
-      form : string;
-      size : string;
-      color : string;
-      quantifier : string;
-      location : Parser.Location;
+    return [];
+
+
+  }
+
+  function findObjectsInWorld(entity : Parser.Entity, state : WorldState) : string[]{
+
+    let matchingObjects : string[] = [];
+    let entityObject : Parser.Object;
+    let objectsInWorld : string[] = Array.prototype.concat.apply([], state.stacks);
+
+    entityObject = (entity.object.location) ? entity.object.object : entity.object;
+    for (let key in state.objects){
+      if(objectsInWorld.indexOf(key) == -1) continue;
+
+      let objDef : ObjectDefinition = state.objects[key];
+      let matched : boolean = true;
+
+      console.log("State object " + key);
+      console.log("Entity object " + entityObject.form);
+      console.log("Entity size " + entityObject.size);
+      console.log("Entity color " + entityObject.color);
+
+      if (entityObject.form != "anyform" && entityObject.form != objDef.form){
+        matched = false;
+      }
+      if (entityObject.size && entityObject.size != objDef.size){
+        matched = false;
+      }
+      if (entityObject.color && entityObject.color != objDef.color){
+        matched = false;
+      }
+      if (matched){
+        matchingObjects.push(key);
+      }
     }
-
-    function findGoalObject(cmd : Parser.Command) : goalObject[]{
-      let goalObjects : goalObject[] = [];
-      goalObjects.push(new goalObject());
-      goalObjects.push(new goalObject());
-      console.log(cmd);
-
-      if(cmd.entity.object.object === undefined) {
-        goalObjects[0].form = cmd.entity.object.form;
-        goalObjects[0].size = cmd.entity.object.size;
-        goalObjects[0].color = cmd.entity.object.color;
-        goalObjects[0].quantifier = cmd.entity.quantifier;
-        goalObjects[0].location = null;
-      }
-      else {
-        goalObjects[0].form = cmd.entity.object.object.form;
-        goalObjects[0].size = cmd.entity.object.object.size;
-        goalObjects[0].color = cmd.entity.object.object.color;
-        goalObjects[0].quantifier = cmd.entity.quantifier;
-        goalObjects[0].location = cmd.entity.object.location;
-      }
-
-      if(cmd.location.entity.object.object === undefined){
-        goalObjects[1].form = cmd.location.entity.object.form;
-        goalObjects[1].size = cmd.location.entity.object.size;
-        goalObjects[1].color = cmd.location.entity.object.color;
-        goalObjects[1].quantifier = cmd.location.entity.quantifier;
-        goalObjects[1].location = null;
-      }
-      else {
-        goalObjects[1].form = cmd.location.entity.object.object.form;
-        goalObjects[1].size = cmd.location.entity.object.object.size;
-        goalObjects[1].color = cmd.location.entity.object.object.color;
-        goalObjects[1].quantifier = cmd.location.entity.quantifier;
-        goalObjects[1].location = cmd.location.entity.object.location;
-      }
-      return goalObjects;
-    }
+    return matchingObjects;
+  }
+  /** A class that describes the goal objects */
+  class goalObject{
+    form : string;
+    size : string;
+    color : string;
+    quantifier : string;
+    location : Parser.Location;
+  }
+}
