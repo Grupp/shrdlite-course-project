@@ -26,140 +26,181 @@
 */
 module Interpreter {
 
-    //////////////////////////////////////////////////////////////////////
-    // exported functions, classes and interfaces/types
+  //////////////////////////////////////////////////////////////////////
+  // exported functions, classes and interfaces/types
 
-/**
-Top-level function for the Interpreter. It calls `interpretCommand` for each possible parse of the command. No need to change this one.
-* @param parses List of parses produced by the Parser.
-* @param currentState The current state of the world.
-* @returns Augments ParseResult with a list of interpretations. Each interpretation is represented by a list of Literals.
-*/
-    export function interpret(parses : Parser.ParseResult[], currentState : WorldState) : InterpretationResult[] {
-        var errors : Error[] = [];
-        var interpretations : InterpretationResult[] = [];
-        parses.forEach((parseresult) => {
-            try {
-                var result : InterpretationResult = <InterpretationResult>parseresult;
-                result.interpretation = interpretCommand(result.parse, currentState);
-                interpretations.push(result);
-            } catch(err) {
-                errors.push(err);
-            }
-        });
-        if (interpretations.length) {
-            return interpretations;
-        } else {
-            // only throw the first error found
-            throw errors[0];
-        }
+  /**
+  Top-level function for the Interpreter. It calls `interpretCommand` for each possible parse of the command. No need to change this one.
+  * @param parses List of parses produced by the Parser.
+  * @param currentState The current state of the world.
+  * @returns Augments ParseResult with a list of interpretations. Each interpretation is represented by a list of Literals.
+  */
+  export function interpret(parses : Parser.ParseResult[], currentState : WorldState) : InterpretationResult[] {
+    var errors : Error[] = [];
+    var interpretations : InterpretationResult[] = [];
+    parses.forEach((parseresult) => {
+      try {
+        var result : InterpretationResult = <InterpretationResult>parseresult;
+        result.interpretation = interpretCommand(result.parse, currentState);
+        interpretations.push(result);
+      } catch(err) {
+        errors.push(err);
+      }
+    });
+    if (interpretations.length) {
+      return interpretations;
+    } else {
+      // only throw the first error found
+      throw errors[0];
     }
+  }
 
-    export interface InterpretationResult extends Parser.ParseResult {
-        interpretation : DNFFormula;
-    }
+  export interface InterpretationResult extends Parser.ParseResult {
+    interpretation : DNFFormula;
+  }
 
-    export type DNFFormula = Conjunction[];
-    type Conjunction = Literal[];
+  export type DNFFormula = Conjunction[];
+  type Conjunction = Literal[];
 
-    /**
-    * A Literal represents a relation that is intended to
-    * hold among some objects.
+  /**
+  * A Literal represents a relation that is intended to
+  * hold among some objects.
+  */
+  export interface Literal {
+    /** Whether this literal asserts the relation should hold
+    * (true polarity) or not (false polarity). For example, we
+    * can specify that "a" should *not* be on top of "b" by the
+    * literal {polarity: false, relation: "ontop", args:
+    * ["a","b"]}.
     */
-    export interface Literal {
-	/** Whether this literal asserts the relation should hold
-	 * (true polarity) or not (false polarity). For example, we
-	 * can specify that "a" should *not* be on top of "b" by the
-	 * literal {polarity: false, relation: "ontop", args:
-	 * ["a","b"]}.
-	 */
-        polarity : boolean;
-	/** The name of the relation in question. */
-        relation : string;
-	/** The arguments to the relation. Usually these will be either objects
-     * or special strings such as "floor" or "floor-N" (where N is a column) */
-        args : string[];
-    }
+    polarity : boolean;
+    /** The name of the relation in question. */
+    relation : string;
+    /** The arguments to the relation. Usually these will be either objects
+    * or special strings such as "floor" or "floor-N" (where N is a column) */
+    args : string[];
+  }
 
-    export function stringify(result : InterpretationResult) : string {
-        return result.interpretation.map((literals) => {
-            return literals.map((lit) => stringifyLiteral(lit)).join(" & ");
-            // return literals.map(stringifyLiteral).join(" & ");
-        }).join(" | ");
-    }
+  export function stringify(result : InterpretationResult) : string {
+    return result.interpretation.map((literals) => {
+      return literals.map((lit) => stringifyLiteral(lit)).join(" & ");
+      // return literals.map(stringifyLiteral).join(" & ");
+    }).join(" | ");
+  }
 
-    export function stringifyLiteral(lit : Literal) : string {
-        return (lit.polarity ? "" : "-") + lit.relation + "(" + lit.args.join(",") + ")";
-    }
+  export function stringifyLiteral(lit : Literal) : string {
+    return (lit.polarity ? "" : "-") + lit.relation + "(" + lit.args.join(",") + ")";
+  }
 
-    //////////////////////////////////////////////////////////////////////
-    // private functions
-    /**
-     * The core interpretation function. The code here is just a
-     * template; you should rewrite this function entirely. In this
-     * template, the code produces a dummy interpretation which is not
-     * connected to `cmd`, but your version of the function should
-     * analyse cmd in order to figure out what interpretation to
-     * return.
-     * @param cmd The actual command. Note that it is *not* a string, but rather an object of type `Command` (as it has been parsed by the parser).
-     * @param state The current state of the world. Useful to look up objects in the world.
-     * @returns A list of list of Literal, representing a formula in disjunctive normal form (disjunction of conjunctions). See the dummy interpetation returned in the code for an example, which means ontop(a,floor) AND holding(b).
-     */
-    function interpretCommand(cmd : Parser.Command, state : WorldState) : DNFFormula {
-        // This returns a dummy interpretation involving two random objects in the world
-        var objects : string[] = Array.prototype.concat.apply([], state.stacks);
-        var aOld : string = objects[Math.floor(Math.random() * objects.length)];
-        var bOld : string = objects[Math.floor(Math.random() * objects.length)];
-        var interpretation : DNFFormula = [[
-            {polarity: true, relation: "ontop", args: [aOld, "floor"]},
-            {polarity: true, relation: "holding", args: [bOld]}
-        ]];
-        // parse cmd
+  //////////////////////////////////////////////////////////////////////
+  // private functions
+  /**
+  * The core interpretation function. The code here is just a
+  * template; you should rewrite this function entirely. In this
+  * template, the code produces a dummy interpretation which is not
+  * connected to `cmd`, but your version of the function should
+  * analyse cmd in order to figure out what interpretation to
+  * return.
+  * @param cmd The actual command. Note that it is *not* a string, but rather an object of type `Command` (as it has been parsed by the parser).
+  * @param state The current state of the world. Useful to look up objects in the world.
+  * @returns A list of list of Literal, representing a formula in disjunctive normal form (disjunction of conjunctions). See the dummy interpetation returned in the code for an example, which means ontop(a,floor) AND holding(b).
+  */
+  function interpretCommand(cmd : Parser.Command, state : WorldState) : DNFFormula {
+    // parse cmd
 
-        // find out which objects that are mentioned
-        let a : goalObject; // action object
-        let b : goalObject; // location object
-        if(cmd.entity.object.object === undefined) {
-          a.form = cmd.entity.object.form;
-          //a.size = cmd.entity.object.size;
-          //a.color = cmd.entity.object.size;
-          //a.quantifier = cmd.entity.quantifier;
-          //a.location = null;
+    // find out which objects that are mentioned
 
+    let goalObjects : goalObject[] = findGoalObject(cmd)
+    let a : goalObject = goalObjects[0]; // action object
+    let b : goalObject = goalObjects[1]; // location object
+
+
+    // does the parse make sense with the current world?
+    //see if the object is in the world
+    let aCandidates : string[] = [];
+    let bCandidates : string[] = [];
+    //let objects : string[] = state.objects;
+    for (let obj in state.objects){
+      //console.log(obj);
+      if(a.form === state.objects[obj].form){
+          if(a.size === null && a.color === null){
+            aCandidates.push(obj);
+          }
+          else {
+
+          }
         }
-        // don't allow deeper 'relativeness' than this
-        // may be too primitive
-        else {
-          a.form = cmd.entity.object.object.form;
-          a.size = cmd.entity.object.object.size;
-          a.color = cmd.entity.object.object.color;
-          a.quantifier = cmd.entity.quantifier;
-          a.location = cmd.entity.object.location;
+        if(b.form === state.objects[obj].form){
+            bCandidates.push(obj);
+          }
         }
+        console.log("Candidates: " + aCandidates);
+        console.log("Candidates: " + bCandidates);
+        console.log("a object:" + a.form + " " + a.size + " " + a.color + " " + a.quantifier);
+        console.log("b object:" + b.form + " " + b.size + " " + b.color + " " + b.quantifier);
+        console.log(state);
 
-        if(cmd.location.entity.object.object === undefined){
-          b.form = cmd.location.entity.object.form;
-        }
-        else {
-          b.form = cmd.location.entity.object.object.form;
-        }
 
-        // does the parse make sense with the current world?
-        console.log("Object a: " + a);
-        console.log("Object b: " + b);
+        // match form, size and color for each goalObject
+/*        var interpretation : DNFFormula = [[
+            {polarity: true, relation: "ontop", args: ['a', "floor"]},
+            {polarity: true, relation: "holding", args: ['a', 'b']}
+         ]];*/
         // formulate goal by looking in the destination of the move command
+        var interpretation : DNFFormula = [[
+          {polarity: true, relation: cmd.location.relation, args: [a.form, b.form]}
+        ]];
 
         // similar for take and put
+        console.log(cmd);
         return interpretation;
+      }
+
     }
 
-}
+    /** A class that describes the goal objects */
+    class goalObject{
+      form : string;
+      size : string;
+      color : string;
+      quantifier : string;
+      location : Parser.Location;
+    }
 
-/** A class that describes the goal objects */
-class goalObject{
-  form : string;
-  size : string;
-  color : string;
-  quantifier : string;
-  location : Parser.Location;
-}
+    function findGoalObject(cmd : Parser.Command) : goalObject[]{
+      let goalObjects : goalObject[] = [];
+      goalObjects.push(new goalObject());
+      goalObjects.push(new goalObject());
+      console.log(cmd);
+
+      if(cmd.entity.object.object === undefined) {
+        goalObjects[0].form = cmd.entity.object.form;
+        goalObjects[0].size = cmd.entity.object.size;
+        goalObjects[0].color = cmd.entity.object.color;
+        goalObjects[0].quantifier = cmd.entity.quantifier;
+        goalObjects[0].location = null;
+      }
+      else {
+        goalObjects[0].form = cmd.entity.object.object.form;
+        goalObjects[0].size = cmd.entity.object.object.size;
+        goalObjects[0].color = cmd.entity.object.object.color;
+        goalObjects[0].quantifier = cmd.entity.quantifier;
+        goalObjects[0].location = cmd.entity.object.location;
+      }
+
+      if(cmd.location.entity.object.object === undefined){
+        goalObjects[1].form = cmd.location.entity.object.form;
+        goalObjects[1].size = cmd.location.entity.object.size;
+        goalObjects[1].color = cmd.location.entity.object.color;
+        goalObjects[1].quantifier = cmd.location.entity.quantifier;
+        goalObjects[1].location = null;
+      }
+      else {
+        goalObjects[1].form = cmd.location.entity.object.object.form;
+        goalObjects[1].size = cmd.location.entity.object.object.size;
+        goalObjects[1].color = cmd.location.entity.object.object.color;
+        goalObjects[1].quantifier = cmd.location.entity.quantifier;
+        goalObjects[1].location = cmd.location.entity.object.location;
+      }
+      return goalObjects;
+    }
