@@ -112,54 +112,106 @@ module Interpreter {
     //console.log("Hello " + cmd.command);
     switch (cmd.command){
       case 'take':
+        console.log("TAKE");
         // find all objects in the world that matches the entity
-        let matchingObjects : string[] = findObjectsInWorld(cmd.entity, state);
-        let DNF : DNFFormula = [];
+        let matchingObjects : string[] = findEntityObjects(cmd.entity, state);
+        let DNFTake : DNFFormula = [];
           for (let obj of matchingObjects){
-            DNF.push([{polarity: true, relation: "holding", args: [obj]}]);
+            DNFTake.push([{polarity: true, relation: "holding", args: [obj]}]);
 
           }
-        return DNF;
+        return DNFTake;
         //break;
       case 'put':
         console.log("PUT");
         throw "Not implemented";
       case 'move':
         console.log("MOVE");
-        //let matchingActionObjects 
-        var interpretation : DNFFormula = [[
-          {polarity: true, relation: "ontop", args: ['a', "floor"]},
-          {polarity: true, relation: "holding", args: ['a', 'b']}
-        ]];
-
-        break;
+        let matchingEntityObjects : string[] = findEntityObjects(cmd.entity, state);
+        let matchingLocationObjects : string[] = findLocationObjects(cmd.location, state);
+        console.log("MOVE " + matchingEntityObjects);
+        console.log("MOVE " + matchingLocationObjects);
+        let DNFMove : DNFFormula = [];
+          for(let LObj of matchingLocationObjects){
+            for (let EObj of matchingEntityObjects){
+              console.log(cmd.location.relation)
+              DNFMove.push([{polarity: true, relation: cmd.location.relation , args: [EObj, LObj]}]);
+            }
+          }
+        return DNFMove;
+        //var interpretation : DNFFormula = [[
+        //  {polarity: true, relation: "ontop", args: ['a', "floor"]},
+        //  {polarity: true, relation: "holding", args: ['a', 'b']}
+        //]];
       default:
         throw "Not implemented";
     }
-
-    return [];
-
-
   }
 
-  function findObjectsInWorld(entity : Parser.Entity, state : WorldState) : string[]{
+  function findLocationObjects(location : Parser.Location, state : WorldState) : string[]{
 
     let matchingObjects : string[] = [];
-    let entityObject : Parser.Object;
+    let locationObject : Parser.Object;
     let objectsInWorld : string[] = Array.prototype.concat.apply([], state.stacks);
 
-    entityObject = (entity.object.location) ? entity.object.object : entity.object;
+    // is there an relative clause?
+    locationObject = (location.entity.object.location) ? location.entity.object.object : location.entity.object;
+
     for (let key in state.objects){
       if(objectsInWorld.indexOf(key) == -1) continue;
 
       let objDef : ObjectDefinition = state.objects[key];
       let matched : boolean = true;
 
+      /*
       console.log("State object " + key);
       console.log("Entity object " + entityObject.form);
       console.log("Entity size " + entityObject.size);
       console.log("Entity color " + entityObject.color);
+      */
 
+      // is the object matching anything in the world?
+      if (locationObject.form != "anyform" && locationObject.form != objDef.form){
+        matched = false;
+      }
+      if (locationObject.size && locationObject.size != objDef.size){
+        matched = false;
+      }
+      if (locationObject.color && locationObject.color != objDef.color){
+        matched = false;
+      }
+
+      if (matched){
+        matchingObjects.push(key);
+      }
+    }
+    return matchingObjects;
+
+  }
+
+  function findEntityObjects(entity : Parser.Entity, state : WorldState) : string[]{
+
+    let matchingObjects : string[] = [];
+    let entityObject : Parser.Object;
+    let objectsInWorld : string[] = Array.prototype.concat.apply([], state.stacks);
+
+    // is there an relative clause?
+    entityObject = (entity.object.location) ? entity.object.object : entity.object;
+
+    for (let key in state.objects){
+      if(objectsInWorld.indexOf(key) == -1) continue;
+
+      let objDef : ObjectDefinition = state.objects[key];
+      let matched : boolean = true;
+
+      /*
+      console.log("State object " + key);
+      console.log("Entity object " + entityObject.form);
+      console.log("Entity size " + entityObject.size);
+      console.log("Entity color " + entityObject.color);
+      */
+
+      // is the object matching anything in the world?
       if (entityObject.form != "anyform" && entityObject.form != objDef.form){
         matched = false;
       }
@@ -169,18 +221,11 @@ module Interpreter {
       if (entityObject.color && entityObject.color != objDef.color){
         matched = false;
       }
+
       if (matched){
         matchingObjects.push(key);
       }
     }
     return matchingObjects;
-  }
-  /** A class that describes the goal objects */
-  class goalObject{
-    form : string;
-    size : string;
-    color : string;
-    quantifier : string;
-    location : Parser.Location;
   }
 }
