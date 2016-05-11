@@ -3,12 +3,12 @@
 
 /**
 * Interpreter module
-* 
+*
 * The goal of the Interpreter module is to interpret a sentence
 * written by the user in the context of the current world state. In
 * particular, it must figure out which objects in the world,
 * i.e. which elements in the `objects` field of WorldState, correspond
-* to the ones referred to in the sentence. 
+* to the ones referred to in the sentence.
 *
 * Moreover, it has to derive what the intended goal state is and
 * return it as a logical formula described in terms of literals, where
@@ -34,7 +34,7 @@ Top-level function for the Interpreter. It calls `interpretCommand` for each pos
 * @param parses List of parses produced by the Parser.
 * @param currentState The current state of the world.
 * @returns Augments ParseResult with a list of interpretations. Each interpretation is represented by a list of Literals.
-*/    
+*/
     export function interpret(parses : Parser.ParseResult[], currentState : WorldState) : InterpretationResult[] {
         var errors : Error[] = [];
         var interpretations : InterpretationResult[] = [];
@@ -76,7 +76,7 @@ Top-level function for the Interpreter. It calls `interpretCommand` for each pos
         polarity : boolean;
 	/** The name of the relation in question. */
         relation : string;
-	/** The arguments to the relation. Usually these will be either objects 
+	/** The arguments to the relation. Usually these will be either objects
      * or special strings such as "floor" or "floor-N" (where N is a column) */
         args : string[];
     }
@@ -108,14 +108,58 @@ Top-level function for the Interpreter. It calls `interpretCommand` for each pos
     function interpretCommand(cmd : Parser.Command, state : WorldState) : DNFFormula {
         // This returns a dummy interpretation involving two random objects in the world
         var objects : string[] = Array.prototype.concat.apply([], state.stacks);
-        var a : string = objects[Math.floor(Math.random() * objects.length)];
-        var b : string = objects[Math.floor(Math.random() * objects.length)];
+        var aOld : string = objects[Math.floor(Math.random() * objects.length)];
+        var bOld : string = objects[Math.floor(Math.random() * objects.length)];
         var interpretation : DNFFormula = [[
-            {polarity: true, relation: "ontop", args: [a, "floor"]},
-            {polarity: true, relation: "holding", args: [b]}
+            {polarity: true, relation: "ontop", args: [aOld, "floor"]},
+            {polarity: true, relation: "holding", args: [bOld]}
         ]];
+        // parse cmd
+
+        // find out which objects that are mentioned
+        let a : goalObject; // action object
+        let b : goalObject; // location object
+        if(cmd.entity.object.object === undefined) {
+          a.form = cmd.entity.object.form;
+          //a.size = cmd.entity.object.size;
+          //a.color = cmd.entity.object.size;
+          //a.quantifier = cmd.entity.quantifier;
+          //a.location = null;
+
+        }
+        // don't allow deeper 'relativeness' than this
+        // may be too primitive
+        else {
+          a.form = cmd.entity.object.object.form;
+          a.size = cmd.entity.object.object.size;
+          a.color = cmd.entity.object.object.color;
+          a.quantifier = cmd.entity.quantifier;
+          a.location = cmd.entity.object.location;
+        }
+
+        if(cmd.location.entity.object.object === undefined){
+          b.form = cmd.location.entity.object.form;
+        }
+        else {
+          b.form = cmd.location.entity.object.object.form;
+        }
+
+        // does the parse make sense with the current world?
+        console.log("Object a: " + a);
+        console.log("Object b: " + b);
+        // formulate goal by looking in the destination of the move command
+
+        // similar for take and put
         return interpretation;
     }
 
 }
 
+/** A class that describes the goal objects */
+class goalObject{
+  form : string;
+  size : string;
+  color : string;
+  quantifier : string;
+  location : Parser.Location;
+}
