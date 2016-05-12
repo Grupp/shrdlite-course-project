@@ -1,5 +1,6 @@
 ///<reference path="World.ts"/>
 ///<reference path="Parser.ts"/>
+///<reference path="lib/collections.ts"/>
 
 /**
 * Interpreter module
@@ -106,11 +107,10 @@ module Interpreter {
   * @returns A list of list of Literal, representing a formula in disjunctive normal form (disjunction of conjunctions). See the dummy interpetation returned in the code for an example, which means ontop(a,floor) AND holding(b).
   */
   function interpretCommand(cmd : Parser.Command, state : WorldState) : DNFFormula {
-    // parse cmd
 
-    // find out which objects that are mentioned
-    //console.log("Hello " + cmd.command);
+    // parse cmd
     switch (cmd.command){
+
       case 'take':
         console.log("TAKE");
         // find all objects in the world that matches the entity
@@ -118,13 +118,13 @@ module Interpreter {
         let DNFTake : DNFFormula = [];
           for (let obj of matchingObjects){
             DNFTake.push([{polarity: true, relation: "holding", args: [obj]}]);
-
           }
         return DNFTake;
-        //break;
+
       case 'put':
         console.log("PUT");
         throw "Not implemented";
+
       case 'move':
         console.log("MOVE");
         let matchingEntityObjects : string[] = findEntityObjects(cmd.entity, state);
@@ -144,95 +144,64 @@ module Interpreter {
           }
         if (DNFMove.length < 1) throw "No correct interpetations";
         return DNFMove;
-        //var interpretation : DNFFormula = [[
-        //  {polarity: true, relation: "ontop", args: ['a', "floor"]},
-        //  {polarity: true, relation: "holding", args: ['a', 'b']}
-        //]];
+
       default:
         throw "Not implemented";
     }
   }
-  function obeysPhysicalLaws(entityObject : string, locationObject : string, relation : string, stateObjects : {[s:string] : ObjectDefinition}) : boolean{
-    let obeys : boolean = true;
-    let objA : ObjectDefinition = stateObjects[entityObject];
-    let objB : ObjectDefinition = stateObjects[locationObject];
 
-    // small objects cannot support large objects
-    if(relation == "ontop" || relation == "inside" &&
-      objA.size == "large" && objB.size == "small"){
-        obeys = false;
-    }
 
-    // balls must be in boxes or on the floor
-    if((relation == "ontop" || relation == "inside") &&
-      objA.form == "ball" && (objB.form != "box" && locationObject != "floor")){
-      obeys = false;
-    }
-
-    // an object cannot relate to itself
-    if(objA == objB){
-      obeys = false;
-    }
-    /*
-    The floor can support at most N objects (beside each other).
-    All objects must be supported by something.
-    The arm can only hold one object at the time.
-    The arm can only pick up free objects.
-    Objects are “inside” boxes, but “ontop” of other objects.
-    Balls must be in boxes or on the floor, otherwise they roll away.
-    Balls cannot support anything.
-    Small objects cannot support large objects.
-    Boxes cannot contain pyramids, planks or boxes of the same size.
-    Small boxes cannot be supported by small bricks or pyramids.
-    Large boxes cannot be supported by large pyramids.
-    */
-    return obeys;
-  }
   function findLocationObjects(location : Parser.Location, state : WorldState) : string[]{
 
     let matchingObjects : string[] = [];
     let locationObject : Parser.Object;
-    let objectsInWorld : string[] = Array.prototype.concat.apply([], state.stacks);
+    let objectsInWorld : string[] = Array.prototype.concat.apply(["floor"], state.stacks); // add floor also
+    let hasRelativeClause : boolean = false;
 
     // is there an relative clause?
-    locationObject = (location.entity.object.location) ? location.entity.object.object : location.entity.object;
-
-    if (locationObject.form == "floor"){
-      matchingObjects.push("floor");
-      return matchingObjects;
+    if (location.entity.object.location){
+      locationObject = location.entity.object.object;
+      hasRelativeClause = true;
     }
+    else {
+      locationObject = location.entity.object;
+    }
+
+
+
+    //locationObject = (location.entity.object.location) ? location.entity.object.object : location.entity.object;
 
     for (let key in state.objects){
       // filter out objects that aren't in the current world
       if(objectsInWorld.indexOf(key) == -1) continue;
 
+      if(hasRelativeClause){
+        let relativeRelation : string = location.entity.object.location.relation;
+        let relativeObject : Object = location.entity.object.location.entity.object;
+        let obeysRules : boolean = true;
+
+        //obeysRules = obeysPhysicalLaws(key, state.objects[relativeObject])
+      }
+
       let objDef : ObjectDefinition = state.objects[key];
       let matched : boolean = true;
-
-      /*
-      console.log("State object " + key);
-      console.log("Entity object " + entityObject.form);
-      console.log("Entity size " + entityObject.size);
-      console.log("Entity color " + entityObject.color);
-      */
 
       // is the object matching anything in the world?
       if (locationObject.form != "anyform" && locationObject.form != objDef.form) matched = false;
       if (locationObject.size && locationObject.size != objDef.size) matched = false;
       if (locationObject.color && locationObject.color != objDef.color) matched = false;
 
-
       if (matched) matchingObjects.push(key);
     }
     return matchingObjects;
-
   }
+
 
   function findEntityObjects(entity : Parser.Entity, state : WorldState) : string[]{
 
     let matchingObjects : string[] = [];
     let entityObject : Parser.Object;
-    let objectsInWorld : string[] = Array.prototype.concat.apply([], state.stacks);
+    let objectsInWorld : string[] = Array.prototype.concat.apply(["floor"], state.stacks);
 
     // is there an relative clause?
     entityObject = (entity.object.location) ? entity.object.object : entity.object;
@@ -243,28 +212,51 @@ module Interpreter {
       let objDef : ObjectDefinition = state.objects[key];
       let matched : boolean = true;
 
-      /*
-      console.log("State object " + key);
-      console.log("Entity object " + entityObject.form);
-      console.log("Entity size " + entityObject.size);
-      console.log("Entity color " + entityObject.color);
-      */
-
       // is the object matching anything in the world?
-      if (entityObject.form != "anyform" && entityObject.form != objDef.form){
-        matched = false;
-      }
-      if (entityObject.size && entityObject.size != objDef.size){
-        matched = false;
-      }
-      if (entityObject.color && entityObject.color != objDef.color){
-        matched = false;
-      }
+      if (entityObject.form != "anyform" && entityObject.form != objDef.form) matched = false;
+      if (entityObject.size && entityObject.size != objDef.size) matched = false;
+      if (entityObject.color && entityObject.color != objDef.color) matched = false;
 
-      if (matched){
-        matchingObjects.push(key);
-      }
+      if (matched) matchingObjects.push(key);
     }
     return matchingObjects;
   }
+}
+
+
+function obeysPhysicalLaws(entityObject : string, locationObject : string, relation : string, stateObjects : {[s:string] : ObjectDefinition}) : boolean{
+  let obeys : boolean = true;
+  let objA : ObjectDefinition = stateObjects[entityObject];
+  let objB : ObjectDefinition = stateObjects[locationObject];
+
+
+  if(relation == "ontop" || relation == "inside"){
+    // small objects cannot support large objects
+    if(objA.size == "large" && objB.size == "small"){
+      obeys = false;
+    }
+    // balls must be in boxes or on the floor
+    if (objA.form == "ball" && (objB.form != "box" && locationObject != "floor")){
+      obeys = false;
+    }
+  }
+
+  // an object cannot relate to itself
+  if(objA == objB){
+    obeys = false;
+  }
+  /*
+  The floor can support at most N objects (beside each other).
+  All objects must be supported by something.
+  The arm can only hold one object at the time.
+  The arm can only pick up free objects.
+  Objects are “inside” boxes, but “ontop” of other objects.
+  [X] Balls must be in boxes or on the floor, otherwise they roll away.
+  Balls cannot support anything.
+  [X] Small objects cannot support large objects.
+  Boxes cannot contain pyramids, planks or boxes of the same size.
+  Small boxes cannot be supported by small bricks or pyramids.
+  Large boxes cannot be supported by large pyramids.
+  */
+  return obeys;
 }

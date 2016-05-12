@@ -5,9 +5,6 @@
 *
 *  Types for generic A\* implementation.
 *
-*  *NB.* The only part of this module
-*  that you should change is the `aStarSearch` function. Everything
-*  else should be used as-is.
 */
 
 /** An edge in a graph. */
