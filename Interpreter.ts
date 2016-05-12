@@ -129,15 +129,20 @@ module Interpreter {
         console.log("MOVE");
         let matchingEntityObjects : string[] = findEntityObjects(cmd.entity, state);
         let matchingLocationObjects : string[] = findLocationObjects(cmd.location, state);
-        console.log("MOVE " + matchingEntityObjects);
-        console.log("MOVE " + matchingLocationObjects);
+        let relation = cmd.location.relation;
+        console.log("Entity objects " + matchingEntityObjects);
+        console.log("Location objects " + matchingLocationObjects);
         let DNFMove : DNFFormula = [];
+
           for(let LObj of matchingLocationObjects){
             for (let EObj of matchingEntityObjects){
-              console.log(cmd.location.relation)
-              DNFMove.push([{polarity: true, relation: cmd.location.relation , args: [EObj, LObj]}]);
+
+              if (obeysPhysicalLaws(EObj, LObj, relation, state.objects)){
+                  DNFMove.push([{polarity: true, relation: relation , args: [EObj, LObj]}]);
+              }
             }
           }
+        if (DNFMove.length < 1) throw "No correct interpetations";
         return DNFMove;
         //var interpretation : DNFFormula = [[
         //  {polarity: true, relation: "ontop", args: ['a', "floor"]},
@@ -147,7 +152,42 @@ module Interpreter {
         throw "Not implemented";
     }
   }
+  function obeysPhysicalLaws(entityObject : string, locationObject : string, relation : string, stateObjects : {[s:string] : ObjectDefinition}) : boolean{
+    let obeys : boolean = true;
+    let objA : ObjectDefinition = stateObjects[entityObject];
+    let objB : ObjectDefinition = stateObjects[locationObject];
 
+    // small objects cannot support large objects
+    if(relation == "ontop" || relation == "inside" &&
+      objA.size == "large" && objB.size == "small"){
+        obeys = false;
+    }
+
+    // balls must be in boxes or on the floor
+    if((relation == "ontop" || relation == "inside") &&
+      objA.form == "ball" && (objB.form != "box" && locationObject != "floor")){
+      obeys = false;
+    }
+
+    // an object cannot relate to itself
+    if(objA == objB){
+      obeys = false;
+    }
+    /*
+    The floor can support at most N objects (beside each other).
+    All objects must be supported by something.
+    The arm can only hold one object at the time.
+    The arm can only pick up free objects.
+    Objects are “inside” boxes, but “ontop” of other objects.
+    Balls must be in boxes or on the floor, otherwise they roll away.
+    Balls cannot support anything.
+    Small objects cannot support large objects.
+    Boxes cannot contain pyramids, planks or boxes of the same size.
+    Small boxes cannot be supported by small bricks or pyramids.
+    Large boxes cannot be supported by large pyramids.
+    */
+    return obeys;
+  }
   function findLocationObjects(location : Parser.Location, state : WorldState) : string[]{
 
     let matchingObjects : string[] = [];
@@ -157,7 +197,13 @@ module Interpreter {
     // is there an relative clause?
     locationObject = (location.entity.object.location) ? location.entity.object.object : location.entity.object;
 
+    if (locationObject.form == "floor"){
+      matchingObjects.push("floor");
+      return matchingObjects;
+    }
+
     for (let key in state.objects){
+      // filter out objects that aren't in the current world
       if(objectsInWorld.indexOf(key) == -1) continue;
 
       let objDef : ObjectDefinition = state.objects[key];
@@ -171,19 +217,12 @@ module Interpreter {
       */
 
       // is the object matching anything in the world?
-      if (locationObject.form != "anyform" && locationObject.form != objDef.form){
-        matched = false;
-      }
-      if (locationObject.size && locationObject.size != objDef.size){
-        matched = false;
-      }
-      if (locationObject.color && locationObject.color != objDef.color){
-        matched = false;
-      }
+      if (locationObject.form != "anyform" && locationObject.form != objDef.form) matched = false;
+      if (locationObject.size && locationObject.size != objDef.size) matched = false;
+      if (locationObject.color && locationObject.color != objDef.color) matched = false;
 
-      if (matched){
-        matchingObjects.push(key);
-      }
+
+      if (matched) matchingObjects.push(key);
     }
     return matchingObjects;
 
