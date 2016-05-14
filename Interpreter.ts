@@ -96,12 +96,8 @@ module Interpreter {
   //////////////////////////////////////////////////////////////////////
   // private functions
   /**
-  * The core interpretation function. The code here is just a
-  * template; you should rewrite this function entirely. In this
-  * template, the code produces a dummy interpretation which is not
-  * connected to `cmd`, but your version of the function should
-  * analyse cmd in order to figure out what interpretation to
-  * return.
+  * The core interpretation function. Parses cmd to give a logical interpretation
+  * of the command by matching it with the current world state and the physical laws
   * @param cmd The actual command. Note that it is *not* a string, but rather an object of type `Command` (as it has been parsed by the parser).
   * @param state The current state of the world. Useful to look up objects in the world.
   * @returns A list of list of Literal, representing a formula in disjunctive normal form (disjunction of conjunctions). See the dummy interpetation returned in the code for an example, which means ontop(a,floor) AND holding(b).
@@ -119,8 +115,6 @@ module Interpreter {
     switch (cmd.command){
 
       case 'take':
-        console.log("TAKE");
-
         // find all objects in the world that matches the entity
         objDefs = getObjectDefinition(cmd, "entity");
         if (objDefs.length < 2){
@@ -128,7 +122,7 @@ module Interpreter {
         } else {
           entityObj = findPossibleObjects(objDefs[0], state);
           relativeObj = findPossibleObjects(objDefs[1], state);
-          // physical laws and stuff
+          entityObj = filterRelative(entityObj, relativeObj, relation, state);
         }
         for (let obj of entityObj){
           DNF.push([{polarity: true, relation: "holding", args: [obj]}]);
@@ -136,18 +130,31 @@ module Interpreter {
         break;
 
       case 'put':
-        console.log("PUT");
-        throw "Not implemented";
+        if (state.holding.length == 0) throw "Arm is not holding anything";
+
+        relation = cmd.location.relation;
+        objDefs = getObjectDefinition(cmd, "location");
+        if (objDefs.length < 2){
+          locationObj = findPossibleObjects(objDefs[0], state);
+        } else {
+          locationObj = findPossibleObjects(objDefs[0], state);
+          relativeObj = findPossibleObjects(objDefs[1], state);
+          locationObj = filterRelative(locationObj, relativeObj, relation, state);
+        }
+        for(let lObj of locationObj){
+            if(obeysPhysicalLaws(state.holding, lObj, relation, state.objects)){
+              DNF.push([{polarity: true, relation: relation , args: [state.holding, lObj]}]);
+          }
+        }
+        break;
 
       case 'move':
-        console.log("MOVE");
         relation = cmd.location.relation;
 
         objDefs = getObjectDefinition(cmd, "entity");
         if (objDefs.length < 2){
           entityObj = findPossibleObjects(objDefs[0], state);
         } else {
-          console.log("RELATIVE ENTITY");
           entityObj = findPossibleObjects(objDefs[0], state);
           relativeObj = findPossibleObjects(objDefs[1], state);
           entityObj = filterRelative(entityObj, relativeObj, relation, state);
@@ -159,16 +166,12 @@ module Interpreter {
           locationObj = findPossibleObjects(objDefs[0], state);
 
         } else {
-          console.log("RELATIVE LOCATION");
           locationObj = findPossibleObjects(objDefs[0], state);
           relativeObj = findPossibleObjects(objDefs[1], state);
           locationObj = filterRelative(locationObj, relativeObj, relation, state);
         }
 
 
-        console.log("Relation " + relation);
-        console.log("Entity "  + entityObj);
-        console.log("Location "  + locationObj);
         for(let lObj of locationObj){
           for (let eObj of entityObj){
             if(obeysPhysicalLaws(eObj, lObj, relation, state.objects)){
