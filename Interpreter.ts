@@ -274,11 +274,23 @@ module Interpreter {
 
 
 
+
   function obeysPhysicalLaws(objA : string, objB : string, relation : string, stateObjects : {[s:string] : ObjectDefinition}) : boolean{
     let obeys : boolean = true;
+
+    if(relation == "above"){
+      let objTemp = objA;
+      objA = objB;
+      objB = objTemp;
+      relation = "under"
+    }
+
     let objDefA : ObjectDefinition = stateObjects[objA];
     let objDefB : ObjectDefinition;
+
+    // if floor add it as a object definition
     objDefB = (objB != "floor") ?  stateObjects[objB] : { "form":"floor",   "size":"null",  "color":"null"  };
+
 
 
     if(relation == "ontop" || relation == "inside"){
@@ -290,21 +302,51 @@ module Interpreter {
       if (objDefA.form == "ball" && (objDefB.form != "box" && objDefB.form != "floor")){
         obeys = false;
       }
+
+      // boxes cannot contain pyramids, planks or boxes of the same size
+      if(objDefA.form == "box" && objDefA.size == objDefB.size &&
+        (objDefB.form == "pyramids" || objDefB.form == "plank" || objDefB.form == "box")){
+        obeys = false;
+      }
+
+      // balls cannot support anything
+      if(objDefB.form == "ball"){
+        obeys = false;
+      }
+
+      //small boxes cannot be supported by small bricks or pyramids
+      if(objDefA.form == "box" && objDefA.size == "small" &&
+        (objDefB.form == "brick" || objDefB.form == "brick")){
+        obeys = false;
+      }
+      //large boxes cannot be supported by large pyramids.
+      if(objDefA.form == "box" && objDefA.size == "large" &&
+        (objDefB.form == "pyramid" && objDefB.size == "large")){
+        obeys = false;
+      }
+    }
+
+
+    if (relation == "under"){
+      //balls cannot support anyting
+      if(objDefA.form == "ball"){
+        obeys = false;
+      }
     }
     // an object cannot relate to itself
     if(objA == objB){
       obeys = false;
     }
     /*
-    The floor can support at most N objects (beside each other).
-    All objects must be supported by something.
-    he arm can only hold one object at the time.
-    The arm can only pick up free objects.
-    Objects are “inside” boxes, but “ontop” of other objects.
+    The floor can support at most N objects (beside each other).  // planner
+    All objects must be supported by something.                   // planner?
+    The arm can only hold one object at the time.                 // planner?
+    The arm can only pick up free objects.                        // planner?
+    Objects are “inside” boxes, but “ontop” of other objects.     //planner
     [X] Balls must be in boxes or on the floor, otherwise they roll away.
-    Balls cannot support anything.
+    [X] Balls cannot support anything.
     [X] Small objects cannot support large objects.
-    Boxes cannot contain pyramids, planks or boxes of the same size.
+    [X]Boxes cannot contain pyramids, planks or boxes of the same size.
     Small boxes cannot be supported by small bricks or pyramids.
     Large boxes cannot be supported by large pyramids.
     */
@@ -313,8 +355,6 @@ module Interpreter {
 
   function matchSpatialRelations(objA : string, objB : string, relation : string, state : WorldState) : boolean{
     let matched : boolean = true;
-//    let objDefA : ObjectDefinition = stateObjects[objA];
-//    let objDefB : ObjectDefinition = stateObjects[objB];
 
     let rowA : number;
     let rowB : number;
@@ -338,9 +378,29 @@ module Interpreter {
       }
 
     }
-    if (relation == "inside"|| relation == "ontop"){
+    if(relation == "inside"|| relation == "ontop"){
       //should be in same column and objA one above objB
-        if(colA != colB || rowA -1 != rowB) matched = false;
+      if(colA != colB || rowA -1 != rowB) matched = false;
+    }
+
+    if(relation == "above"){
+      if(colA != colB || rowA <= rowB) matched = false;
+    }
+
+    if(relation == "under"){
+      if(colA != colB || rowA >= rowB) matched = false;
+    }
+
+    if(relation == "beside"){
+      if(colA == colB) matched = false;
+    }
+
+    if(relation == "leftof"){
+      if(colA >= colB) matched = false;
+    }
+
+    if(relation == "rightof"){
+      if(colA <= colB) matched = false;
     }
     return matched;
   }
