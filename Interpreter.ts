@@ -99,12 +99,8 @@ module Interpreter {
     //////////////////////////////////////////////////////////////////////
     // private functions
     /**
-     * The core interpretation function. The code here is just a
-     * template; you should rewrite this function entirely. In this
-     * template, the code produces a dummy interpretation which is not
-     * connected to `cmd`, but your version of the function should
-     * analyse cmd in order to figure out what interpretation to
-     * return.
+     * Interprets the command parsed from the parser and returns a DNFFormula of what actions should be made. 
+     * Throws exception if no valid interpretation if found.
      * @param cmd The actual command. Note that it is *not* a string, but rather an object of type `Command` (as it has been parsed by the parser).
      * @param state The current state of the world. Useful to look up objects in the world.
      * @returns A list of list of Literal, representing a formula in disjunctive normal form (disjunction of conjunctions). See the dummy interpetation returned in the code for an example, which means ontop(a,floor) AND holding(b).
@@ -138,6 +134,7 @@ module Interpreter {
                 });
                 return interpretation;
             case 'put':
+                if (!state.holding) throw "Arm is holding nothing";
                 let holding: WorldObject = new WorldObject(state.objects[state.holding], -1, -1, state.holding);
                 targetObjects = findMatchingObjects(cmd.location.entity, worldObjs, false);
                 targetObjects.forEach(tObj => {
