@@ -108,18 +108,32 @@ module Interpreter {
   */
   function interpretCommand(cmd : Parser.Command, state : WorldState) : DNFFormula {
 
+    let objDefs : Parser.Object[];
+    let entityObj : string[] = [];
+    let locationObj : string[] = [];
+    let relativeObj : string[] = [];
+    let relation : string;
+    let DNF : DNFFormula = [];
+
     // parse cmd
     switch (cmd.command){
 
       case 'take':
         console.log("TAKE");
+
         // find all objects in the world that matches the entity
-        let matchingObjects : string[] = findEntityObjects(cmd.entity, state);
-        let DNFTake : DNFFormula = [];
-          for (let obj of matchingObjects){
-            DNFTake.push([{polarity: true, relation: "holding", args: [obj]}]);
-          }
-        return DNFTake;
+        objDefs = getObjectDefinition(cmd, "entity");
+        if (objDefs.length < 2){
+          entityObj = findPossibleObjects(objDefs[0], state);
+        } else {
+          entityObj = findPossibleObjects(objDefs[0], state);
+          relativeObj = findPossibleObjects(objDefs[1], state);
+          // physical laws and stuff
+        }
+        for (let obj of entityObj){
+          DNF.push([{polarity: true, relation: "holding", args: [obj]}]);
+        }
+        break;
 
       case 'put':
         console.log("PUT");
@@ -127,73 +141,109 @@ module Interpreter {
 
       case 'move':
         console.log("MOVE");
-        let matchingEntityObjects : string[] = findEntityObjects(cmd.entity, state);
-        let matchingLocationObjects : string[] = findLocationObjects(cmd.location, state);
-        let relation = cmd.location.relation;
-        console.log("Entity objects " + matchingEntityObjects);
-        console.log("Location objects " + matchingLocationObjects);
-        let DNFMove : DNFFormula = [];
+        relation = cmd.location.relation;
 
-          for(let LObj of matchingLocationObjects){
-            for (let EObj of matchingEntityObjects){
+        objDefs = getObjectDefinition(cmd, "entity");
+        if (objDefs.length < 2){
+          entityObj = findPossibleObjects(objDefs[0], state);
+        } else {
+          console.log("RELATIVE ENTITY");
+          entityObj = findPossibleObjects(objDefs[0], state);
+          relativeObj = findPossibleObjects(objDefs[1], state);
+          entityObj = filterRelative(entityObj, relativeObj, relation, state);
 
-              if (obeysPhysicalLaws(EObj, LObj, relation, state.objects)){
-                  DNFMove.push([{polarity: true, relation: relation , args: [EObj, LObj]}]);
-              }
+        }
+
+        objDefs = getObjectDefinition(cmd, "location");
+        if (objDefs.length < 2){
+          locationObj = findPossibleObjects(objDefs[0], state);
+
+        } else {
+          console.log("RELATIVE LOCATION");
+          locationObj = findPossibleObjects(objDefs[0], state);
+          relativeObj = findPossibleObjects(objDefs[1], state);
+          locationObj = filterRelative(locationObj, relativeObj, relation, state);
+        }
+
+
+        console.log("Relation " + relation);
+        console.log("Entity "  + entityObj);
+        console.log("Location "  + locationObj);
+        for(let lObj of locationObj){
+          for (let eObj of entityObj){
+            if(obeysPhysicalLaws(eObj, lObj, relation, state.objects)){
+              DNF.push([{polarity: true, relation: relation , args: [eObj, lObj]}]);
             }
           }
-        if (DNFMove.length < 1) throw "No correct interpetations";
-        return DNFMove;
+        }
+        break;
 
       default:
         throw "Not implemented";
+      }
+    if(DNF.length < 1) throw "No correct interpetations";
+    return DNF;
+  }
+
+  function filterRelative(objA : string[], rObj : string[], relation :string, state : WorldState) :string[] {
+    let obj : string[] = [];
+
+    for(let o of objA){
+      let matched : boolean = false;
+      for (let r of rObj){
+        if(matchSpatialRelations(o, r, relation, state)) matched = true;
+      }
+      if(matched) {
+        obj.push(o);
+      }
     }
+    return obj;
   }
 
 
-  function findLocationObjects(location : Parser.Location, state : WorldState) : string[]{
+  function getObjectDefinition(cmd : Parser.Command, objType : string) : Parser.Object[] {
 
-    let matchingObjects : string[] = [];
-    let locationObject : Parser.Object;
-    let objectsInWorld : string[] = Array.prototype.concat.apply(["floor"], state.stacks); // add floor also
-    let hasRelativeClause : boolean = false;
+    let objectDefs : Object[] = [];
+    let object: Parser.Object
 
-    // is there an relative clause?
-    if (location.entity.object.location){
-      locationObject = location.entity.object.object;
-      hasRelativeClause = true;
+    object = (objType === "entity") ? cmd.entity.object : cmd.location.entity.object;
+    if (object.location){
+        objectDefs.push(object.object);
+        objectDefs.push(object.location.entity.object);
+      } else {
+        objectDefs.push(object);
     }
-    else {
-      locationObject = location.entity.object;
+    return objectDefs;
+  }
+
+
+  function findPossibleObjects(objDef : Parser.Object, state : WorldState) : string[]{
+    let possibleObjects : string[] = [];
+    let objectsInWorld : string[] = Array.prototype.concat.apply([], state.stacks);
+
+    if (objDef.form == "floor"){
+      possibleObjects.push("floor");
+      return possibleObjects;
+
     }
-
-
-
-    //locationObject = (location.entity.object.location) ? location.entity.object.object : location.entity.object;
-
     for (let key in state.objects){
       // filter out objects that aren't in the current world
       if(objectsInWorld.indexOf(key) == -1) continue;
 
-      if(hasRelativeClause){
-        let relativeRelation : string = location.entity.object.location.relation;
-        let relativeObject : Object = location.entity.object.location.entity.object;
-        let obeysRules : boolean = true;
-
-        //obeysRules = obeysPhysicalLaws(key, state.objects[relativeObject])
-      }
-
-      let objDef : ObjectDefinition = state.objects[key];
+      let stateObjDef : ObjectDefinition = state.objects[key];
       let matched : boolean = true;
 
       // is the object matching anything in the world?
-      if (locationObject.form != "anyform" && locationObject.form != objDef.form) matched = false;
-      if (locationObject.size && locationObject.size != objDef.size) matched = false;
-      if (locationObject.color && locationObject.color != objDef.color) matched = false;
+      if (objDef.form != "anyform" && objDef.form != stateObjDef.form) matched = false;
+      if (objDef.size && objDef.size != stateObjDef.size) matched = false;
+      if (objDef.color && objDef.color != stateObjDef.color) matched = false;
 
-      if (matched) matchingObjects.push(key);
+      if (matched){
+        possibleObjects.push(key);
+      }
     }
-    return matchingObjects;
+
+    return possibleObjects;
   }
 
 
@@ -221,42 +271,77 @@ module Interpreter {
     }
     return matchingObjects;
   }
-}
 
 
-function obeysPhysicalLaws(entityObject : string, locationObject : string, relation : string, stateObjects : {[s:string] : ObjectDefinition}) : boolean{
-  let obeys : boolean = true;
-  let objA : ObjectDefinition = stateObjects[entityObject];
-  let objB : ObjectDefinition = stateObjects[locationObject];
+
+  function obeysPhysicalLaws(objA : string, objB : string, relation : string, stateObjects : {[s:string] : ObjectDefinition}) : boolean{
+    let obeys : boolean = true;
+    let objDefA : ObjectDefinition = stateObjects[objA];
+    let objDefB : ObjectDefinition;
+    objDefB = (objB != "floor") ?  stateObjects[objB] : { "form":"floor",   "size":"null",  "color":"null"  };
 
 
-  if(relation == "ontop" || relation == "inside"){
-    // small objects cannot support large objects
-    if(objA.size == "large" && objB.size == "small"){
+    if(relation == "ontop" || relation == "inside"){
+      // small objects cannot support large objects
+      if(objDefA.size == "large" && objDefB.size == "small"){
+        obeys = false;
+      }
+      // balls must be in boxes or on the floor
+      if (objDefA.form == "ball" && (objDefB.form != "box" && objDefB.form != "floor")){
+        obeys = false;
+      }
+    }
+    // an object cannot relate to itself
+    if(objA == objB){
       obeys = false;
     }
-    // balls must be in boxes or on the floor
-    if (objA.form == "ball" && (objB.form != "box" && locationObject != "floor")){
-      obeys = false;
-    }
+    /*
+    The floor can support at most N objects (beside each other).
+    All objects must be supported by something.
+    he arm can only hold one object at the time.
+    The arm can only pick up free objects.
+    Objects are “inside” boxes, but “ontop” of other objects.
+    [X] Balls must be in boxes or on the floor, otherwise they roll away.
+    Balls cannot support anything.
+    [X] Small objects cannot support large objects.
+    Boxes cannot contain pyramids, planks or boxes of the same size.
+    Small boxes cannot be supported by small bricks or pyramids.
+    Large boxes cannot be supported by large pyramids.
+    */
+    return obeys;
   }
 
-  // an object cannot relate to itself
-  if(objA == objB){
-    obeys = false;
+  function matchSpatialRelations(objA : string, objB : string, relation : string, state : WorldState) : boolean{
+    let matched : boolean = true;
+//    let objDefA : ObjectDefinition = stateObjects[objA];
+//    let objDefB : ObjectDefinition = stateObjects[objB];
+
+    let rowA : number;
+    let rowB : number;
+    let colA : number;
+    let colB : number;
+
+    for(let col in state.stacks){
+      if(state.stacks[col].indexOf(objA) != -1){
+        colA = +col;
+        rowA = state.stacks[col].indexOf(objA);
+
+        if( objB == "floor"){
+          colB = +col;
+          rowB = -1;
+        }
+      }
+      if(state.stacks[col].indexOf(objB) != -1)
+      {
+        colB =  +col;
+        rowB = state.stacks[col].indexOf(objB);
+      }
+
+    }
+    if (relation == "inside"|| relation == "ontop"){
+      //should be in same column and objA one above objB
+        if(colA != colB || rowA -1 != rowB) matched = false;
+    }
+    return matched;
   }
-  /*
-  The floor can support at most N objects (beside each other).
-  All objects must be supported by something.
-  The arm can only hold one object at the time.
-  The arm can only pick up free objects.
-  Objects are “inside” boxes, but “ontop” of other objects.
-  [X] Balls must be in boxes or on the floor, otherwise they roll away.
-  Balls cannot support anything.
-  [X] Small objects cannot support large objects.
-  Boxes cannot contain pyramids, planks or boxes of the same size.
-  Small boxes cannot be supported by small bricks or pyramids.
-  Large boxes cannot be supported by large pyramids.
-  */
-  return obeys;
 }

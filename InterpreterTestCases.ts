@@ -108,4 +108,3 @@ var allTestCases : TestCase[] = [
 //                         "inside(e,k) & inside(f,m)", "inside(e,l) & inside(f,m)"]]
 //     }
 // );
-
