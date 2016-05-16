@@ -4,12 +4,12 @@
 
 /**
 * Interpreter module
-* 
+*
 * The goal of the Interpreter module is to interpret a sentence
 * written by the user in the context of the current world state. In
 * particular, it must figure out which objects in the world,
 * i.e. which elements in the `objects` field of WorldState, correspond
-* to the ones referred to in the sentence. 
+* to the ones referred to in the sentence.
 *
 * Moreover, it has to derive what the intended goal state is and
 * return it as a logical formula described in terms of literals, where
@@ -36,9 +36,9 @@ module Interpreter {
     * @param currentState The current state of the world.
     * @returns Augments ParseResult with a list of interpretations. Each interpretation is represented by a list of Literals.
     */
-    export function interpret(parses: Parser.ParseResult[], currentState: WorldState): InterpretationResult[] {
-        var errors: Error[] = [];
-        var interpretations: InterpretationResult[] = [];
+    export function interpret(parses : Parser.ParseResult[], currentState : WorldState) : InterpretationResult[] {
+        var errors : Error[] = [];
+        var interpretations : InterpretationResult[] = [];
         parses.forEach((parseresult) => {
             try {
                 var result: InterpretationResult = <InterpretationResult>parseresult;
@@ -77,12 +77,12 @@ module Interpreter {
          * literal {polarity: false, relation: "ontop", args:
          * ["a","b"]}.
          */
-        polarity: boolean;
+        polarity : boolean;
         /** The name of the relation in question. */
-        relation: string;
-        /** The arguments to the relation. Usually these will be either objects 
+        relation : string;
+        /** The arguments to the relation. Usually these will be either objects
          * or special strings such as "floor" or "floor-N" (where N is a column) */
-        args: string[];
+        args : string[];
     }
 
     export function stringify(result: InterpretationResult): string {
@@ -99,11 +99,12 @@ module Interpreter {
     //////////////////////////////////////////////////////////////////////
     // private functions
     /**
-     * Interprets the command parsed from the parser and returns a DNFFormula of what actions should be made. 
+     * Interprets the command parsed from the parser and returns a DNFFormula of what actions should be made.
      * Throws exception if no valid interpretation if found.
      * @param cmd The actual command. Note that it is *not* a string, but rather an object of type `Command` (as it has been parsed by the parser).
      * @param state The current state of the world. Useful to look up objects in the world.
      * @returns A list of list of Literal, representing a formula in disjunctive normal form (disjunction of conjunctions). See the dummy interpetation returned in the code for an example, which means ontop(a,floor) AND holding(b).
+     * @throws An error when no valid interpretations can be found
      */
     function interpretCommand(cmd: Parser.Command, state: WorldState): DNFFormula {
         let worldObjs = new collections.Dictionary<string, WorldObject>();
@@ -325,4 +326,3 @@ module Interpreter {
         return a == null || b == null || a.localeCompare(b) == 0;
     }
 }
-

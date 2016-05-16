@@ -30,3 +30,5 @@ tags
 
 ### VisualStudioCode ###
 .vscode
+TestAStar.js
+TestInterpreter.js
