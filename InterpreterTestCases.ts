@@ -69,7 +69,32 @@ var allTestCases : TestCase[] = [
     {world: "small",
      utterance: "put a black ball in a box on the floor",
      interpretations: [["inside(f,k)"], ["ontop(f,floor)"]]
-    }
+    },
+    
+    {world: "complex",
+     utterance: "take a ball in a box beside a table",
+     interpretations: [["holding(f)"], ["holding(f)"]]
+    },
+    
+    {world: "small",
+     utterance: "take the floor",
+     interpretations: []
+    },
+    
+    {world: "medium",
+     utterance: "take a red object that is on a red object that is on a yellow object that is on the floor",
+     interpretations: [["holding(j)"]]
+    },
+    
+    {world: "medium",
+     utterance: "take a red object that is on an object that is on a blue object",
+     interpretations: [["holding(c)"]]
+    },
+    
+    {world: "small",
+     utterance: "put the floor on a table",
+     interpretations: []
+    },
 ];
 
 

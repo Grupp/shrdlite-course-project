@@ -41,10 +41,9 @@ module Interpreter {
         var interpretations: InterpretationResult[] = [];
         parses.forEach((parseresult) => {
             try {
-                var result: InterpretationResult = <InterpretationResult>parseresult;
-                var intp = interpretCommand(result.parse, currentState);
-                if (intp != null) { }
+                console.log("\n\n" + Parser.stringify(parseresult));
 
+                var result: InterpretationResult = <InterpretationResult>parseresult;
                 result.interpretation = interpretCommand(result.parse, currentState);
                 interpretations.push(result);
             } catch (err) {
@@ -106,6 +105,8 @@ module Interpreter {
      * @returns A list of list of Literal, representing a formula in disjunctive normal form (disjunction of conjunctions). See the dummy interpetation returned in the code for an example, which means ontop(a,floor) AND holding(b).
      */
     function interpretCommand(cmd: Parser.Command, state: WorldState): DNFFormula {
+        console.log(`\n${cmd.command}`);
+
         let worldObjs = new collections.Dictionary<string, WorldObject>();
 
         let emptyColumns = 0;
@@ -130,9 +131,13 @@ module Interpreter {
             case 'take':
                 actionObjects = findMatchingObjects(cmd.entity, worldObjs, true);
                 actionObjects.forEach(obj => {
-                    interpretation.push([{ polarity: true, relation: "holding", args: [obj] }])
+                    //console.log(state.stacks[worldObjs.getValue(obj).column].length);
+                    //console.log(worldObjs.getValue(obj).row + 1);
+                    //only free objects
+                    //if (state.stacks[worldObjs.getValue(obj).column].length == worldObjs.getValue(obj).row + 1)
+                        interpretation.push([{ polarity: true, relation: "holding", args: [obj] }])
                 });
-                return interpretation;
+                break;
             case 'put':
                 if (!state.holding) throw "Arm is holding nothing";
                 let holding: WorldObject = new WorldObject(state.objects[state.holding], -1, -1, state.holding);
@@ -158,7 +163,6 @@ module Interpreter {
 
                 throw "Not implemented.";
         }
-
         if (interpretation.length == 0)
             throw "No interpetation!";
 
@@ -186,12 +190,14 @@ module Interpreter {
     ): string[] {
 
         let matches: string[] = [];
-        let entityObj = entity.object.location ? entity.object.object : entity.object;
-        let hasRelations: boolean = entity.object.location != null;
-
-        if (entityObj.form == "floor") {
-            return ["floor"];
+        let entityObj = entity.object;
+        while (entityObj.form == undefined) {
+            entityObj = entityObj.object;
         }
+        //let entityObj = entity.object.location ? entity.object.object : entity.object;
+        let hasRelation: boolean = entity.object.location != null;
+
+        console.log(`{${entityObj.color}, ${entityObj.form}, ${entityObj.size}}`);
 
         worldObjects.forEach((key, worldObj) => {
             //
@@ -204,14 +210,16 @@ module Interpreter {
             if (isMatch && entityObj.form != "anyform" && !strComp(entityObj.form, worldObj.obj.form)) {
                 isMatch = false;
             }
+
             if (isMatch && !strComp(entityObj.color, worldObj.obj.color)) {
                 isMatch = false;
             }
+
             if (isMatch && !strComp(entityObj.size, worldObj.obj.size)) {
                 isMatch = false;
             }
 
-            if (hasRelations && isMatch) {
+            if (hasRelation && isMatch) {
                 let relativeObjs =
                     findMatchingObjects(entity.object.location.entity, worldObjects, false);
                 let obeys: boolean = false;
@@ -223,6 +231,9 @@ module Interpreter {
             }
 
             if (isMatch) {
+                if (hasRelation) console.log(entity.object.location.relation);
+
+                console.log(`${worldObj} matches`);
                 matches.push(key);
             }
         });
@@ -286,7 +297,7 @@ module Interpreter {
     ): boolean {
         if (relation == "ontop" || relation == "inside") {
             // The floor can support at most N objects (beside each other).
-            if(relativeObject.obj.form == "floor" && relativeObject.column <= 0) // floor's column number are the number of free columns
+            if (relativeObject.obj.form == "floor" && relativeObject.column <= 0) // floor's column number are the number of free columns
                 return false;
             // Small objects cannot support large objects.
             if (mainObject.obj.size == "large" && relativeObject.obj.size == "small")
@@ -325,4 +336,3 @@ module Interpreter {
         return a == null || b == null || a.localeCompare(b) == 0;
     }
 }
-
