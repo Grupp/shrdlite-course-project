@@ -78,35 +78,41 @@ function aStarSearch<Node>(
         fb = fb != undefined ? fb : Infinity;
         return fa - fb;
     });
-    openSet.add(start);
+    openSet.add(start);    
 
     let closedSet: collections.Set<Node> = new collections.Set<Node>();
 
     let current: Node;
-    while (!openSet.isEmpty() || startTime + timeout > time.getTime()) {
+    while (!openSet.isEmpty() || startTime + timeout > (new Date()).getTime()) {        
         current = openSet.removeRoot();
-
+        
         if (goal(current)) {
-            result.path = backtrack(cameFrom, current, start);
+            console.log('1');
+            
+            result.path = backtrack(cameFrom, current, start, graph);
+            console.log('1');
             result.cost = gScores.getValue(current);
-            return result;
+            
+            console.log('1');return result;
         }
-
         closedSet.add(current);
-
         for (let edge of graph.outgoingEdges(current)) {
             if (closedSet.contains(edge.to)) continue;
 
             let tempGScore: number = gScores.getValue(current)
             tempGScore = tempGScore != undefined ? tempGScore + edge.cost : Infinity;
             let theGScore = gScores.getValue(edge.to);
+            
+            
             if (openSet.contains(edge.to) && (theGScore == undefined || tempGScore >= theGScore)) continue;
-
+                        
+            
             cameFrom.setValue(edge.to, current);
             gScores.setValue(edge.to, tempGScore);
             fScores.setValue(edge.to, tempGScore + heuristics(edge.to));
 
             openSet.add(edge.to);
+            
         }
     }
 
@@ -117,15 +123,19 @@ function aStarSearch<Node>(
 function backtrack<Node>(
     cameFrom: collections.Dictionary<Node, Node>,
     goal: Node,
-    start: Node
+    start: Node,
+    graph: Graph<Node>
 ): Node[] {
 
     let path: Node[] = [goal];
-
+    console.log(cameFrom);
     let current: Node = goal;
-    while (current != start) {
+    while (graph.compareNodes(current, start)) {
+        
+        
         current = cameFrom.getValue(current);
         path.unshift(current);
+        console.log(current);
     }
 
     return path;

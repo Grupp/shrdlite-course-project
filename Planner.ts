@@ -1,5 +1,7 @@
 ///<reference path="World.ts"/>
 ///<reference path="Interpreter.ts"/>
+/// <reference path="Graph.ts" />
+
 
 /** 
 * Planner module
@@ -75,17 +77,21 @@ module Planner {
      * be added using the `push` method.
      */
     function planInterpretation(interpretation: Interpreter.DNFFormula, state: WorldState): string[] {
-        let goalNodes: collections.Set<WorldNode> = new collections.Set<WorldNode>();
-
-
 
 
         let goal = (n: WorldNode): boolean => {
-            interpretation.forEach(intrp => {
-                intrp.forEach(formula => {
+            for (let intrp of interpretation) {
+                for (let formula of intrp) {
+                    if(formula.relation == 'holding') 
+                    {
+                        console.log(n.holding + '=?' + formula.args[0]);
+                        
+                        return n.holding == formula.args[0];
+                    }
                     let p0 = indexOf2D(n.stacks, formula.args[0]);
                     let p1 = indexOf2D(n.stacks, formula.args[1]);
                     if (p0 == [-1, -1] || p1 == [-1, -1]) return false;
+                    
                     switch (formula.relation) {
                         case 'leftof':
                             return p0[0] < p1[0];
@@ -95,25 +101,27 @@ module Planner {
                         case 'ontop':
                             return p0[0] == p1[0] && p0[1] == p1[1] + 1;
                         case 'under':
-                        return p0[0] == p1[0] && p0[1] < p1[1];
+                            return p0[0] == p1[0] && p0[1] < p1[1];
                         case 'beside':
                             return p0[0] == p1[0] + 1 || p0[0] == p1[0] - 1;
                         case 'above':
                             return p0[0] == p1[0] && p0[1] > p1[1];
                     }
-                });
-            });
+                }
+            }
             return false;
         };
 
         let heuristics = (n: WorldNode): number => {
             return 1;
         };
-
+        
         let graph: WorldGraph = new WorldGraph();
         let searchResult = aStarSearch<WorldNode>(graph,
             new WorldNode(state.stacks, state.arm, state.holding),
-            goal, heuristics, 1000);
+            goal, heuristics, 1);
+        console.log('path');
+        
 
         var plan: string[] = [];
 
@@ -177,14 +185,14 @@ module Planner {
 
     function indexOf2D(arr: string[][], item: string): [number, number] {
         let p: [number, number] = [0, 0];
-        arr.forEach(a => {
-            a.forEach(s => {
+        for(let a of arr) {
+            for(let s of a) {
                 if (s == item)
                     return p;
                 p[1]++;
-            });
+            }
             p[0]++;
-        });
+        }
         return [-1, -1];
     }
 }
@@ -224,13 +232,7 @@ class WorldNode {
 
 
     compare(other: WorldNode): number {
-        if (this.stacks == other.stacks &&
-            this.armCol == other.armCol &&
-            this.holding == other.holding)
-            return 0;
-        if (this.armCol != other.armCol)
-            return this.armCol - other.armCol;
-        return 1;
+        return this.toString() == other.toString() ? 0 : 1;
     }
 
     neighbours(): WorldNode[] {
@@ -241,16 +243,20 @@ class WorldNode {
         if (this.armCol != this.stacks.length - 1) {
             nodes.push(new WorldNode(this.stacks, this.armCol + 1, this.holding));
         }
-        if (this.holding == '' && this.stacks[this.armCol].length > 0) {
+        if (this.holding == null && this.stacks[this.armCol].length > 0) {
             let newStacks = this.stacks;
             let newHolding = newStacks[this.armCol].pop();
             nodes.push(new WorldNode(newStacks, this.armCol, newHolding));
         }
-        else if (this.holding != '') {
+        else if (this.holding != null) {
             let newStacks = this.stacks;
             newStacks[this.armCol].push(this.holding);
-            nodes.push(new WorldNode(newStacks, this.armCol, ''));
+            nodes.push(new WorldNode(newStacks, this.armCol, null));
         }
         return nodes;
+    }
+    
+    toString(): string{
+        return JSON.stringify(this.stacks) + this.armCol + (this.holding==null?'':this.holding);
     }
 }
