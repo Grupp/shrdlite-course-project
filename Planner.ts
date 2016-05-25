@@ -83,9 +83,7 @@ module Planner {
             for (let intrp of interpretation) {
                 for (let formula of intrp) {
                     if(formula.relation == 'holding') 
-                    {
-                        console.log(n.holding + '=?' + formula.args[0]);
-                        
+                    {                        
                         return n.holding == formula.args[0];
                     }
                     let p0 = indexOf2D(n.stacks, formula.args[0]);
@@ -115,26 +113,28 @@ module Planner {
         let heuristics = (n: WorldNode): number => {
             return 1;
         };
-        
+        let startState = new WorldNode(state.stacks, state.arm, state.holding);
         let graph: WorldGraph = new WorldGraph();
         let searchResult = aStarSearch<WorldNode>(graph,
-            new WorldNode(state.stacks, state.arm, state.holding),
+            startState,
             goal, heuristics, 1);
         console.log('path');
         
 
         var plan: string[] = [];
 
-        let prevNode = searchResult.path.shift();
+        let prevNode = startState;
         searchResult.path.forEach(node => {
+            console.log(node);
             if (prevNode.armCol < node.armCol)
                 plan.push('r');
             else if (prevNode.armCol > node.armCol)
                 plan.push('l');
-            else if (prevNode.holding == '')
+            else if (prevNode.holding != '')
                 plan.push('p');
             else
                 plan.push('d');
+            prevNode = node;
         });
 
         return plan;
