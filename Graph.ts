@@ -79,7 +79,7 @@ function aStarSearch<Node>(
     let closedSet: collections.Set<Node> = new collections.Set<Node>();
 
     let current: Node;
-    while (!openSet.isEmpty() || startTime + timeout > (new Date()).getTime()) {
+    while (!openSet.isEmpty() || startTime + timeout > time.getTime()) {
         current = openSet.removeRoot();
 
         if (goal(current)) {
@@ -87,24 +87,22 @@ function aStarSearch<Node>(
             result.cost = gScores.getValue(current);
             return result;
         }
+
         closedSet.add(current);
-        for (let edge of graph.outgoingEdges(current)) {            
+
+        for (let edge of graph.outgoingEdges(current)) {
             if (closedSet.contains(edge.to)) continue;
 
             let tempGScore: number = gScores.getValue(current)
             tempGScore = tempGScore != undefined ? tempGScore + edge.cost : Infinity;
             let theGScore = gScores.getValue(edge.to);
-
-
             if (openSet.contains(edge.to) && (theGScore == undefined || tempGScore >= theGScore)) continue;
-
 
             cameFrom.setValue(edge.to, current);
             gScores.setValue(edge.to, tempGScore);
             fScores.setValue(edge.to, tempGScore + heuristics(edge.to));
 
             openSet.add(edge.to);
-
         }
     }
 
@@ -121,25 +119,10 @@ function backtrack<Node>(
     let path: Node[] = [goal];
 
     let current: Node = goal;
-    while (current == start) {
-        current = getValue(cameFrom, current);
+    while (current != start) {
+        current = cameFrom.getValue(current);
         path.unshift(current);
-        console.log(current);
     }
 
-    console.log(path);
-    
-
     return path;
-}
-
-function getValue<Node>(collection: collections.Dictionary<Node, Node>, item: Node): Node {
-    let result: Node;
-    collection.forEach((key, value) => {
-        if (key == item) {
-            result = value;
-            return;
-        }
-    });
-    return result;
 }
