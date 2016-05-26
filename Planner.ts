@@ -108,12 +108,6 @@ module Planner {
                             break;
                         case 'inside':
                         case 'ontop':
-                            console.log(formula.args[0])
-                            console.log(formula.args[1])
-                            console.log(p0[0])
-                            console.log(p0[1])
-                            console.log(p1[0])
-                            console.log(p1[1])
                             isGoal = (p0[0] == p1[0] && p0[1] == p1[1] + 1) ||
                                     (formula.args[1] == "floor" && p0[1] == 0);
                             break;
@@ -134,30 +128,7 @@ module Planner {
         };
 
         let heuristics = (n: WorldNode): number => {
-            for (let intrp of interpretation) {
-                for (let formula of intrp) {
-                    let p0 = indexOf2D(n.stacks, formula.args[0]);
-                    let p1 = indexOf2D(n.stacks, formula.args[1]);
-                    switch (formula.relation) {
-                        case 'leftof':
-                            return p0[0] < p1[0] ?
-                                0 : p0[0] - p1[0];
-                        case 'rightof':
-                            return p0[0] > p1[0] ?
-                                0 : p1[0] - p0[0];
-                        case 'inside':
-                        case 'ontop':
-                            return Math.abs(p0[0] - p1[0]) + p0[1] - p1[1] + 1;
-                        case 'under':
-                            return Math.abs(p0[0] - p1[0]);
-                        case 'beside':
-                            return p0[0] - p1[0] > 0 ? p0[0] - p1[0] - 1 : p0[0] - p1[0] > 0 ? p1[0] - p0[0] - 1 : 1;
-                        case 'above':
-                            return Math.abs(p0[0] - p1[0]);
-                    }
-                }
-            }
-            return 0;
+            return 1;
         };
         let startState = new WorldNode(state.stacks, state.arm, state.holding, state.objects);
         let graph: WorldGraph = new WorldGraph();
