@@ -87,6 +87,18 @@ module Planner {
                     let p1 = indexOf2D(n.stacks, formula.args[1]);
                     if (p0 == [Infinity, Infinity] || p1 == [Infinity, Infinity]) return false;
 
+/*
+                    let p0 = indexOf2D(n.stacks, formula.args[0]);
+                    let p1 = indexOf2D(n.stacks, formula.args[1]);
+                    if (formula.relation == 'holding') {
+                        return n.holding == formula.args[0];
+                    }
+                    if (formula.args[1] == 'floor') {
+                        console.log('floor');
+                        return p0[1] == 0;
+                    }
+*/
+
                     switch (formula.relation) {
                         case 'leftof':
                             isGoal = p0[0] < p1[0];
@@ -122,13 +134,36 @@ module Planner {
         };
 
         let heuristics = (n: WorldNode): number => {
-            return 1;
+            for (let intrp of interpretation) {
+                for (let formula of intrp) {
+                    let p0 = indexOf2D(n.stacks, formula.args[0]);
+                    let p1 = indexOf2D(n.stacks, formula.args[1]);
+                    switch (formula.relation) {
+                        case 'leftof':
+                            return p0[0] < p1[0] ?
+                                0 : p0[0] - p1[0];
+                        case 'rightof':
+                            return p0[0] > p1[0] ?
+                                0 : p1[0] - p0[0];
+                        case 'inside':
+                        case 'ontop':
+                            return Math.abs(p0[0] - p1[0]) + p0[1] - p1[1] + 1;
+                        case 'under':
+                            return Math.abs(p0[0] - p1[0]);
+                        case 'beside':
+                            return p0[0] - p1[0] > 0 ? p0[0] - p1[0] - 1 : p0[0] - p1[0] > 0 ? p1[0] - p0[0] - 1 : 1;
+                        case 'above':
+                            return Math.abs(p0[0] - p1[0]);
+                    }
+                }
+            }
+            return 0;
         };
-        let startState = new WorldNode(state.stacks, state.arm, state.holding);
+        let startState = new WorldNode(state.stacks, state.arm, state.holding, state.objects);
         let graph: WorldGraph = new WorldGraph();
         let searchResult = aStarSearch<WorldNode>(graph,
             startState,
-            goal, heuristics, 1);
+            goal, heuristics, 3);
         var plan: string[] = [];
 
         let prevNode = searchResult.path.shift();
@@ -137,8 +172,9 @@ module Planner {
                 plan.push('r');
             else if (prevNode.armCol > node.armCol)
                 plan.push('l');
-            else if (prevNode.holding == null)
-              plan.push('p');
+            else if (prevNode.holding == null) {
+                plan.push('p');
+            }
             else
                 plan.push('d');
             prevNode = node;
@@ -203,9 +239,10 @@ class WorldNode {
     constructor(
         public stacks: Stack[],
         public armCol: number,
-        public holding: string) {
-          this.stacks = JSON.parse(JSON.stringify(stacks));
-        }
+        public holding: string,
+        public objects: { [s: string]: ObjectDefinition; }) {
+        this.stacks = JSON.parse(JSON.stringify(stacks));
+    }
 
 
     compare(other: WorldNode): number {
@@ -214,34 +251,40 @@ class WorldNode {
 
     neighbours(): WorldNode[] {
         let nodes: WorldNode[] = [];
-        let stackCopy : string[][] = JSON.parse(JSON.stringify(this.stacks));
+        let stackCopy: string[][] = JSON.parse(JSON.stringify(this.stacks));
 
         // move to the right
         if (this.armCol != 0) {
-            nodes.push(new WorldNode(stackCopy, this.armCol - 1, this.holding));
+            nodes.push(new WorldNode(stackCopy, this.armCol - 1, this.holding, this.objects));
         }
 
         // move to the left
         if (this.armCol != stackCopy.length - 1) {
-            nodes.push(new WorldNode(stackCopy, this.armCol + 1, this.holding));
+            nodes.push(new WorldNode(stackCopy, this.armCol + 1, this.holding, this.objects));
         }
 
         // take object if it is an object there
         if (this.holding == null && stackCopy[this.armCol].length > 0) {
             let newStacks = stackCopy;
             let newHolding = newStacks[this.armCol].pop();
-            nodes.push(new WorldNode(newStacks, this.armCol, newHolding));
+            nodes.push(new WorldNode(newStacks, this.armCol, newHolding, this.objects));
         }
         // put an object
-        else if (this.holding != null) {
+        else if (this.holding != null && (stackCopy[this.armCol].length == 0 ||
+            Interpreter.obeyLaws(this.objects[this.holding],
+                this.objects[stackCopy[this.armCol][stackCopy[this.armCol].length - 1]],
+                "ontop") ||
+            Interpreter.obeyLaws(this.objects[this.holding],
+                this.objects[stackCopy[this.armCol][stackCopy[this.armCol].length - 1]],
+                "inside"))) {
             let newStacks = stackCopy;
             newStacks[this.armCol].push(this.holding);
-            nodes.push(new WorldNode(newStacks, this.armCol, null));
+            nodes.push(new WorldNode(newStacks, this.armCol, null, this.objects));
         }
         return nodes;
     }
 
-    toString(): string{
-        return JSON.stringify(this.stacks) + this.armCol + (this.holding==null ? '' : this.holding);
+    toString(): string {
+        return JSON.stringify(this.stacks) + this.armCol + (this.holding == null ? '' : this.holding);
     }
 }
