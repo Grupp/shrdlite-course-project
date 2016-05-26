@@ -182,7 +182,9 @@ module Interpreter {
             return this.key;
         }
     }
-
+    /* Find objects in the world that matches the entity passed to the function
+    *
+    */
     function findMatchingObjects(
         entity: Parser.Entity,
         worldObjects: collections.Dictionary<string, WorldObject>,
@@ -191,32 +193,44 @@ module Interpreter {
 
         let matches: string[] = [];
         let entityObj = entity.object;
+
+        //the problem?
         while (entityObj.form == undefined) {
             entityObj = entityObj.object;
+            if(entity.object.location != null) {
+                 //do stuff recursive
+                 console.log("I am the problem");
+            }
         }
-        //let entityObj = entity.object.location ? entity.object.object : entity.object;
+        // should be set if the while loop is running
         let hasRelation: boolean = entity.object.location != null;
 
+        //search for the mentioned object in the world
         worldObjects.forEach((key, worldObj) => {
-            //
+
             let isMatch: boolean = true;
+
             // Cannot pickup floor
             if (key == "floor" && (action || entityObj.form == "anyform")) {
                 isMatch = false;
             }
 
+            // if not the same object
             if (isMatch && entityObj.form != "anyform" && !strComp(entityObj.form, worldObj.obj.form)) {
                 isMatch = false;
             }
 
+            // not the same color
             if (isMatch && !strComp(entityObj.color, worldObj.obj.color)) {
                 isMatch = false;
             }
 
+            // not the same size
             if (isMatch && !strComp(entityObj.size, worldObj.obj.size)) {
                 isMatch = false;
             }
 
+            //recursive function call to sesrch for the related object
             if (hasRelation && isMatch) {
                 let relativeObjs =
                     findMatchingObjects(entity.object.location.entity, worldObjects, false);
@@ -310,11 +324,6 @@ module Interpreter {
                 return false;
             if (relativeObject.form != "box" && relation != "ontop")
                 return false;
-            // Boxes cannot contain pyramids, planks or boxes of the same size.
-            if (mainObject.form == "box" &&
-                (relativeObject.form == "pyramid" || relativeObject.form == "plank" || relativeObject.form == "box") &&
-                mainObject.size == relativeObject.size)
-                return false;
             // Small boxes cannot be supported by small bricks or pyramids.
             if (mainObject.size == "small" && relativeObject.size == "small" && mainObject.form == "box" &&
                 (relativeObject.form == "brick" || relativeObject.form == "pyramid" || relativeObject.form == "box"))
@@ -324,7 +333,14 @@ module Interpreter {
                 relativeObject.size == "large" && relativeObject.form == "box")
                 return false;
         }
-        //throw "True";
+        if (relation == "inside") {
+          // Boxes cannot contain pyramids, planks or boxes of the same size.
+          if (mainObject.form == "box" &&
+              (relativeObject.form == "pyramid" || relativeObject.form == "plank" || relativeObject.form == "box") &&
+              mainObject.size == relativeObject.size)
+              return false;
+          }
+
         return true;
     }
 

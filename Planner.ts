@@ -85,7 +85,7 @@ module Planner {
                     }
                     let p0 = indexOf2D(n.stacks, formula.args[0]);
                     let p1 = indexOf2D(n.stacks, formula.args[1]);
-                    if (p0 == [Infinity, Infinity] || p1 == [Infinity, Infinity]) return false;
+                    if (!isFinite(p0[0])  || !isFinite(p1[0])) return false;
 
 /*
                     let p0 = indexOf2D(n.stacks, formula.args[0]);
@@ -128,13 +128,59 @@ module Planner {
         };
 
         let heuristics = (n: WorldNode): number => {
-            return 1;
+          let hArr : number[] = [];
+          let h :number;
+          let active : [number,number] = [Infinity, Infinity];
+          let destination : [number,number] = [Infinity, Infinity];
+          for (let intrp of interpretation) {
+              for (let formula of intrp) {
+                  let hsource = 0;
+                  let hdest = 0;
+                  let source = indexOf2D(n.stacks, formula.args[0]);
+                  hsource = isFinite(source[0]) || source[0] != -1 ? n.stacks[source[0]].length - source[1] - 1 : 0;
+                  if(formula.args[1] != undefined && formula.args[1] != "floor"){
+                      let dest = indexOf2D(n.stacks, formula.args[1]);
+                      hdest = isFinite(dest[0]) || dest[0] != -1 ? n.stacks[dest[0]].length - dest[1] - 1 : 0;
+                  }
+                  hArr.push(hsource + hdest);
+
+                  /*
+                  if(formula.args[0] == n.holding){
+                    h = 0;
+                  } else{
+                      active = indexOf2D(n.stacks, formula.args[0]);
+                      console.log(n.stacks.length)
+                      console.log(active[0])
+                      console.log(active[1])
+                      h = n.stacks[active[0]].length - 1 - active[1];
+                  }
+                  if(formula.args[1] == n.holding){
+                    h += 0;
+                  } else{
+                      destination = indexOf2D(n.stacks, formula.args[1]);
+                      console.log(n.stacks.length)
+                      console.log(destination[0])
+                      console.log(destination[1])
+                      // if floor
+                      if(destination[0] == -1 || !isFinite(destination[0])) {
+                        h += 0;
+                      } else {
+                        h += n.stacks[destination[0]].length - 1 - destination[1];
+                      }
+                  }
+                  hArr.push(h);
+                  */
+                }
+          }
+          console.log(hArr);
+          //return Math.min.apply(null,hArr);
+          return 0;
         };
         let startState = new WorldNode(state.stacks, state.arm, state.holding, state.objects);
         let graph: WorldGraph = new WorldGraph();
         let searchResult = aStarSearch<WorldNode>(graph,
             startState,
-            goal, heuristics, 3);
+            goal, heuristics, 10);
         var plan: string[] = [];
 
         let prevNode = searchResult.path.shift();
