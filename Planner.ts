@@ -93,7 +93,8 @@ module Planner {
                             return p0[0] > p1[0];
                         case 'inside':
                         case 'ontop':
-                            return p0[0] == p1[0] && p0[1] == p1[1] + 1;
+                            return p0[0] == p1[0] && p0[1] == p1[1] + 1 ||
+                                    formula.args[1] == "floor" && p0[1] == 0;
                         case 'under':
                             return p0[0] == p1[0] && p0[1] < p1[1];
                         case 'beside':
@@ -152,53 +153,10 @@ module Planner {
                 plan.push('d');
             prevNode = node;
         });
-        //plan = ['r', 'r', 'r', 'r'];
         return plan;
-        // // This function returns a dummy plan involving a random stack
-        // do {
-        //     var pickstack = Math.floor(Math.random() * state.stacks.length);
-        // } while (state.stacks[pickstack].length == 0);
-        // var plan: string[] = [];
-
-        // // First move the arm to the leftmost nonempty stack
-        // if (pickstack < state.arm) {
-        //     plan.push("Moving left");
-        //     for (var i = state.arm; i > pickstack; i--) {
-        //         plan.push("l");
-        //     }
-        // } else if (pickstack > state.arm) {
-        //     plan.push("Moving right");
-        //     for (var i = state.arm; i < pickstack; i++) {
-        //         plan.push("r");
-        //     }
-        // }
-
-        // // Then pick up the object
-        // var obj = state.stacks[pickstack][state.stacks[pickstack].length - 1];
-        // plan.push("Picking up the " + state.objects[obj].form,
-        //     "p");
-
-        // if (pickstack < state.stacks.length - 1) {
-        //     // Then move to the rightmost stack
-        //     plan.push("Moving as far right as possible");
-        //     for (var i = pickstack; i < state.stacks.length - 1; i++) {
-        //         plan.push("r");
-        //     }
-
-        //     // Then move back
-        //     plan.push("Moving back");
-        //     for (var i = state.stacks.length - 1; i > pickstack; i--) {
-        //         plan.push("l");
-        //     }
-        // }
-
-        // // Finally put it down again
-        // plan.push("Dropping the " + state.objects[obj].form,
-        //     "d");
-
-        // return plan;
     }
 
+    //p[0] = col p[1] = row
     function indexOf2D(arr: string[][], item: string): [number, number] {
         let p: [number, number] = [0, 0];
         for (let a of arr) {

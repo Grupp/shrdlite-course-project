@@ -29,7 +29,6 @@ if (!isNaN(example)) {
 }
 
 world.printWorld(() => {
-
     var plan = Shrdlite.parseUtteranceIntoPlan(world, utterance);
     console.log();
     world.performPlan(plan, () => {

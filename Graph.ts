@@ -81,7 +81,6 @@ function aStarSearch<Node>(
     let current: Node;
     while (!openSet.isEmpty() && startTime + timeout > Date.now()) {
         current = openSet.removeRoot();
-
         if (goal(current)) {
             result.path = backtrack(cameFrom, current, start);
             result.cost = gScores.getValue(current);
@@ -105,9 +104,7 @@ function aStarSearch<Node>(
             openSet.add(edge.to);
         }
     }
-
-    //Failure: timeout or no path
-    throw "No path found";
+    throw "No path found! (timeout)";
 }
 
 function backtrack<Node>(
