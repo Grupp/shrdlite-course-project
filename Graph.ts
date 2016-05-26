@@ -79,7 +79,7 @@ function aStarSearch<Node>(
     let closedSet: collections.Set<Node> = new collections.Set<Node>();
 
     let current: Node;
-    while (!openSet.isEmpty() || startTime + timeout > time.getTime()) {
+    while (!openSet.isEmpty() && startTime + timeout > Date.now()) {
         current = openSet.removeRoot();
 
         if (goal(current)) {
@@ -107,7 +107,7 @@ function aStarSearch<Node>(
     }
 
     //Failure: timeout or no path
-    return result;
+    throw "No path found";
 }
 
 function backtrack<Node>(

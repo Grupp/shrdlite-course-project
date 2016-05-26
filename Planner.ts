@@ -76,13 +76,15 @@ module Planner {
         let goal = (n: WorldNode): boolean => {
             for (let intrp of interpretation) {
                 for (let formula of intrp) {
-                    if(formula.relation == 'holding')
-                    {
-                        return n.holding == formula.args[0];
-                    }
                     let p0 = indexOf2D(n.stacks, formula.args[0]);
                     let p1 = indexOf2D(n.stacks, formula.args[1]);
-                    if (p0 == [-1, -1] || p1 == [-1, -1]) return false;
+                    if (formula.relation == 'holding') {
+                        return n.holding == formula.args[0];
+                    }
+                    if (formula.args[1] == 'floor') {
+                        console.log('floor');
+                        return p0[1] == 0;
+                    }
 
                     switch (formula.relation) {
                         case 'leftof':
@@ -105,31 +107,46 @@ module Planner {
         };
 
         let heuristics = (n: WorldNode): number => {
+            for (let intrp of interpretation) {
+                for (let formula of intrp) {
+                    let p0 = indexOf2D(n.stacks, formula.args[0]);
+                    let p1 = indexOf2D(n.stacks, formula.args[1]);
+                    switch (formula.relation) {
+                        case 'leftof':
+                            return p0[0] < p1[0] ?
+                                0 : p0[0] - p1[0];
+                        case 'rightof':
+                            return p0[0] > p1[0] ?
+                                0 : p1[0] - p0[0];
+                        case 'inside':
+                        case 'ontop':
+                            return Math.abs(p0[0] - p1[0]) + p0[1] - p1[1] + 1;
+                        case 'under':
+                            return Math.abs(p0[0] - p1[0]);
+                        case 'beside':
+                            return p0[0] - p1[0] > 0 ? p0[0] - p1[0] - 1 : p0[0] - p1[0] > 0 ? p1[0] - p0[0] - 1 : 1;
+                        case 'above':
+                            return Math.abs(p0[0] - p1[0]);
+                    }
+                }
+            }
             return 0;
         };
-        let startState = new WorldNode(state.stacks, state.arm, state.holding);
+        let startState = new WorldNode(state.stacks, state.arm, state.holding, state.objects);
         let graph: WorldGraph = new WorldGraph();
         let searchResult = aStarSearch<WorldNode>(graph,
             startState,
-            goal, heuristics, 1);
+            goal, heuristics, 3);
         var plan: string[] = [];
-        console.log("Goal");
-        console.log(goal);
-        console.log("startState");
-        console.log(startState);
-        console.log("result");
-        console.log(searchResult.path);
-        console.log(searchResult);
 
-
-        let prevNode = startState;
+        let prevNode = searchResult.path.shift();
         searchResult.path.forEach(node => {
             if (prevNode.armCol < node.armCol)
                 plan.push('r');
             else if (prevNode.armCol > node.armCol)
                 plan.push('l');
-            else if (prevNode.holding != ''){
-              plan.push('p');
+            else if (prevNode.holding == null) {
+                plan.push('p');
             }
             else
                 plan.push('d');
@@ -184,8 +201,8 @@ module Planner {
 
     function indexOf2D(arr: string[][], item: string): [number, number] {
         let p: [number, number] = [0, 0];
-        for(let a of arr) {
-            for(let s of a) {
+        for (let a of arr) {
+            for (let s of a) {
                 if (s == item)
                     return p;
                 p[1]++;
@@ -227,9 +244,10 @@ class WorldNode {
     constructor(
         public stacks: Stack[],
         public armCol: number,
-        public holding: string) {
-          this.stacks = JSON.parse(JSON.stringify(stacks));
-        }
+        public holding: string,
+        public objects: { [s: string]: ObjectDefinition; }) {
+        this.stacks = JSON.parse(JSON.stringify(stacks));
+    }
 
 
     compare(other: WorldNode): number {
@@ -238,28 +256,34 @@ class WorldNode {
 
     neighbours(): WorldNode[] {
         let nodes: WorldNode[] = [];
-        let stackCopy : string[][] = JSON.parse(JSON.stringify(this.stacks));
+        let stackCopy: string[][] = JSON.parse(JSON.stringify(this.stacks));
 
         if (this.armCol != 0) {
-            nodes.push(new WorldNode(stackCopy, this.armCol - 1, this.holding));
+            nodes.push(new WorldNode(stackCopy, this.armCol - 1, this.holding, this.objects));
         }
         if (this.armCol != stackCopy.length - 1) {
-            nodes.push(new WorldNode(stackCopy, this.armCol + 1, this.holding));
+            nodes.push(new WorldNode(stackCopy, this.armCol + 1, this.holding, this.objects));
         }
         if (this.holding == null && stackCopy[this.armCol].length > 0) {
             let newStacks = JSON.parse(JSON.stringify(stackCopy));;
             let newHolding = newStacks[this.armCol].pop();
-            nodes.push(new WorldNode(newStacks, this.armCol, newHolding));
+            nodes.push(new WorldNode(newStacks, this.armCol, newHolding, this.objects));
         }
-        else if (this.holding != null) {
+        else if (this.holding != null && (stackCopy[this.armCol].length == 0 ||
+            Interpreter.obeyLaws(this.objects[this.holding],
+                this.objects[stackCopy[this.armCol][stackCopy[this.armCol].length - 1]],
+                "ontop") ||
+            Interpreter.obeyLaws(this.objects[this.holding],
+                this.objects[stackCopy[this.armCol][stackCopy[this.armCol].length - 1]],
+                "inside"))) {
             let newStacks = JSON.parse(JSON.stringify(stackCopy));
             newStacks[this.armCol].push(this.holding);
-            nodes.push(new WorldNode(newStacks, this.armCol, null));
+            nodes.push(new WorldNode(newStacks, this.armCol, null, this.objects));
         }
         return nodes;
     }
 
-    toString(): string{
-        return JSON.stringify(this.stacks) + this.armCol + (this.holding==null?'':this.holding);
+    toString(): string {
+        return JSON.stringify(this.stacks) + this.armCol + (this.holding == null ? '' : this.holding);
     }
 }
