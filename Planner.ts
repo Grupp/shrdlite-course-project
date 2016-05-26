@@ -74,35 +74,51 @@ module Planner {
 
 
         let goal = (n: WorldNode): boolean => {
+
+            let isGoal : boolean = false;
             for (let intrp of interpretation) {
                 for (let formula of intrp) {
+                  if(!isGoal){
                     if(formula.relation == 'holding')
                     {
-                        return n.holding == formula.args[0];
+                        isGoal =  n.holding == formula.args[0];
                     }
                     let p0 = indexOf2D(n.stacks, formula.args[0]);
                     let p1 = indexOf2D(n.stacks, formula.args[1]);
-                    if (p0 == [-1, -1] || p1 == [-1, -1]) return false;
+                    if (p0 == [Infinity, Infinity] || p1 == [Infinity, Infinity]) return false;
 
                     switch (formula.relation) {
                         case 'leftof':
-                            return p0[0] < p1[0];
+                            isGoal = p0[0] < p1[0];
+                            break;
                         case 'rightof':
-                            return p0[0] > p1[0];
+                            isGoal = p0[0] > p1[0];
+                            break;
                         case 'inside':
                         case 'ontop':
-                            return p0[0] == p1[0] && p0[1] == p1[1] + 1 ||
-                                    formula.args[1] == "floor" && p0[1] == 0;
+                            console.log(formula.args[0])
+                            console.log(formula.args[1])
+                            console.log(p0[0])
+                            console.log(p0[1])
+                            console.log(p1[0])
+                            console.log(p1[1])
+                            isGoal = (p0[0] == p1[0] && p0[1] == p1[1] + 1) ||
+                                    (formula.args[1] == "floor" && p0[1] == 0);
+                            break;
                         case 'under':
-                            return p0[0] == p1[0] && p0[1] < p1[1];
+                            isGoal = p0[0] == p1[0] && p0[1] < p1[1];
+                            break;
                         case 'beside':
-                            return p0[0] == p1[0] + 1 || p0[0] == p1[0] - 1;
+                            isGoal = p0[0] == p1[0] + 1 || p0[0] == p1[0] - 1;
+                            break;
                         case 'above':
-                            return p0[0] == p1[0] && p0[1] > p1[1];
+                            isGoal = p0[0] == p1[0] && p0[1] > p1[1];
+                            break;
                     }
+                  }
                 }
             }
-            return false;
+            return isGoal;
         };
 
         let heuristics = (n: WorldNode): number => {
@@ -131,9 +147,20 @@ module Planner {
     }
 
     //p[0] = col p[1] = row
+    /**
+    * Find which colum and row an object has
+    *
+    * @param arr the stacks where the function search in
+    * @param string which object it search for
+    * @returns the column and row if it finds the object in the stacks otherwise
+    * it returns Infinity. floor is defined as [-1, -1]
+    */
     function indexOf2D(arr: string[][], item: string): [number, number] {
         let p: [number, number] = [0, 0];
+        if (item == "floor") return [-1, -1];
+
         for(let a of arr) {
+            p[1] = 0;
             for(let s of a) {
                 if (s == item)
                     return p;
@@ -141,7 +168,7 @@ module Planner {
             }
             p[0]++;
         }
-        return [-1, -1];
+        return [Infinity, Infinity];
     }
 }
 
@@ -189,19 +216,25 @@ class WorldNode {
         let nodes: WorldNode[] = [];
         let stackCopy : string[][] = JSON.parse(JSON.stringify(this.stacks));
 
+        // move to the right
         if (this.armCol != 0) {
             nodes.push(new WorldNode(stackCopy, this.armCol - 1, this.holding));
         }
+
+        // move to the left
         if (this.armCol != stackCopy.length - 1) {
             nodes.push(new WorldNode(stackCopy, this.armCol + 1, this.holding));
         }
+
+        // take object if it is an object there
         if (this.holding == null && stackCopy[this.armCol].length > 0) {
-            let newStacks = JSON.parse(JSON.stringify(stackCopy));;
+            let newStacks = stackCopy;
             let newHolding = newStacks[this.armCol].pop();
             nodes.push(new WorldNode(newStacks, this.armCol, newHolding));
         }
+        // put an object
         else if (this.holding != null) {
-            let newStacks = JSON.parse(JSON.stringify(stackCopy));
+            let newStacks = stackCopy;
             newStacks[this.armCol].push(this.holding);
             nodes.push(new WorldNode(newStacks, this.armCol, null));
         }
@@ -209,6 +242,6 @@ class WorldNode {
     }
 
     toString(): string{
-        return JSON.stringify(this.stacks) + this.armCol + (this.holding==null?'':this.holding);
+        return JSON.stringify(this.stacks) + this.armCol + (this.holding==null ? '' : this.holding);
     }
 }
