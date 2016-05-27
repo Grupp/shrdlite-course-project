@@ -210,7 +210,6 @@ module Interpreter {
 
         let matches: string[] = [];
         let entityObj = entity.object;
-
         let locations: Parser.Location[] = [];
 
         while (entityObj.form == undefined) {
@@ -218,13 +217,10 @@ module Interpreter {
                 locations.push(entityObj.location);
             }
             entityObj = entityObj.object;
-            if(entity.object.location != null) {
-                 //do stuff recursive
-                 console.log("I am the problem");
-            }
         }
 
-        //search for the mentioned object in the world
+        //let entityObj = entity.object.location ? entity.object.object : entity.object;
+
         worldObjects.forEach((key, worldObj) => {
 
             let isMatch: boolean = true;
@@ -243,6 +239,7 @@ module Interpreter {
             if (isMatch && !strComp(entityObj.color, worldObj.obj.color)) {
                 isMatch = false;
             }
+
 
             // not the same size
             if (isMatch && !strComp(entityObj.size, worldObj.obj.size)) {
@@ -361,7 +358,6 @@ module Interpreter {
               mainObject.size == relativeObject.size)
               return false;
           }
-
         return true;
     }
 
