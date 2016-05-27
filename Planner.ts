@@ -86,19 +86,6 @@ module Planner {
                     let p0 = indexOf2D(n.stacks, formula.args[0]);
                     let p1 = indexOf2D(n.stacks, formula.args[1]);
                     if (p0 == [Infinity, Infinity] || p1 == [Infinity, Infinity]) return false;
-
-/*
-                    let p0 = indexOf2D(n.stacks, formula.args[0]);
-                    let p1 = indexOf2D(n.stacks, formula.args[1]);
-                    if (formula.relation == 'holding') {
-                        return n.holding == formula.args[0];
-                    }
-                    if (formula.args[1] == 'floor') {
-                        console.log('floor');
-                        return p0[1] == 0;
-                    }
-*/
-
                     switch (formula.relation) {
                         case 'leftof':
                             isGoal = p0[0] < p1[0];
@@ -128,7 +115,33 @@ module Planner {
         };
 
         let heuristics = (n: WorldNode): number => {
-            return 1;
+            
+            
+            
+            /*for (let intrp of interpretation) {
+                for (let formula of intrp) {
+                    let active = indexOf2D(n.stacks, formula.args[0]);
+                    let destination = indexOf2D(n.stacks, formula.args[1]);
+                    switch (formula.relation) {
+                        case 'leftof':
+                            return active[0] < destination[0] ?
+                                0 : active[0] - destination[0];
+                        case 'rightof':
+                            return active[0] > destination[0] ?
+                                0 : destination[0] - active[0];
+                        case 'inside':
+                        case 'ontop':
+                            return Math.abs(active[0] - destination[0]) + active[1] - destination[1] + 1;
+                        case 'under':
+                            return Math.abs(active[0] - destination[0]);
+                        case 'beside':
+                            return active[0] - destination[0] > 0 ? active[0] - destination[0] - 1 : active[0] - destination[0] > 0 ? destination[0] - active[0] - 1 : 1;
+                        case 'above':
+                            return Math.abs(active[0] - destination[0]);
+                    }
+                }
+            }*/
+            return 0;
         };
         let startState = new WorldNode(state.stacks, state.arm, state.holding, state.objects);
         let graph: WorldGraph = new WorldGraph();
@@ -165,7 +178,6 @@ module Planner {
     function indexOf2D(arr: string[][], item: string): [number, number] {
         let p: [number, number] = [0, 0];
         if (item == "floor") return [-1, -1];
-
         for(let a of arr) {
             p[1] = 0;
             for(let s of a) {
@@ -207,8 +219,10 @@ class WorldGraph implements Graph<WorldNode> {
  */
 class WorldNode {
 
+    public stacks: Stack[]
+
     constructor(
-        public stacks: Stack[],
+        stacks: Stack[],
         public armCol: number,
         public holding: string,
         public objects: { [s: string]: ObjectDefinition; }) {

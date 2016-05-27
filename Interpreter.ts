@@ -43,6 +43,8 @@ module Interpreter {
             try {
                 var result: InterpretationResult = <InterpretationResult>parseresult;
                 result.interpretation = interpretCommand(result.parse, currentState);
+                //console.log('\n!!!!!!!!!!!\n' + stringifyParse(parseresult));
+                //console.log(stringify(result) + '\n????????????\n');
                 interpretations.push(result);
             } catch (err) {
                 errors.push(err);
@@ -93,6 +95,21 @@ module Interpreter {
         return (lit.polarity ? "" : "-") + lit.relation + "(" + lit.args.join(",") + ")";
     }
 
+    function stringifyParse(parse: Parser.ParseResult): string {
+        let s: string[] = [];
+        let j = JSON.stringify(parse.parse).split(/({|})/g);
+        let tabs = 1;
+        j.forEach(sj => {
+            if (sj.lastIndexOf('}') != -1)
+                tabs--;
+            s.push(((new Array(tabs).join(" " + tabs)) + sj));
+            if (sj.lastIndexOf('{') != -1)
+                tabs++;
+        });
+
+        return s.join('\n');
+    }
+
     //////////////////////////////////////////////////////////////////////
     // private functions
     /**
@@ -138,7 +155,7 @@ module Interpreter {
                 });
                 break;
             case 'put':
-                if (!state.holding) throw "Arm is holding nothing";
+                if (state.holding == null) throw "Arm is holding nothing";
                 let holding: WorldObject = new WorldObject(state.objects[state.holding], -1, -1, state.holding);
                 targetObjects = findMatchingObjects(cmd.location.entity, worldObjs, false);
                 targetObjects.forEach(tObj => {
@@ -191,14 +208,18 @@ module Interpreter {
 
         let matches: string[] = [];
         let entityObj = entity.object;
+        let locations: Parser.Location[] = [];
         while (entityObj.form == undefined) {
+            if (entityObj.location != null) {
+                locations.push(entityObj.location);
+            }
             entityObj = entityObj.object;
         }
+
         //let entityObj = entity.object.location ? entity.object.object : entity.object;
-        let hasRelation: boolean = entity.object.location != null;
 
         worldObjects.forEach((key, worldObj) => {
-            //
+
             let isMatch: boolean = true;
             // Cannot pickup floor
             if (key == "floor" && (action || entityObj.form == "anyform")) {
@@ -217,15 +238,18 @@ module Interpreter {
                 isMatch = false;
             }
 
-            if (hasRelation && isMatch) {
-                let relativeObjs =
-                    findMatchingObjects(entity.object.location.entity, worldObjects, false);
-                let obeys: boolean = false;
-                relativeObjs.forEach(relativeObj => {
-                    if (obeyRelation(worldObj, worldObjects.getValue(relativeObj), entity.object.location.relation))
-                        obeys = true;
+            if (isMatch && locations.length != 0) {
+                locations.forEach(location => {
+                    let relativeObjs =
+                        findMatchingObjects(location.entity, worldObjects, false);
+                    let obeys: boolean = false;
+                    relativeObjs.forEach(relativeObj => {
+                        if (obeyRelation(worldObj, worldObjects.getValue(relativeObj), location.relation))
+                            obeys = true;
+                    });
+                    if (!obeys)
+                        isMatch = false;
                 });
-                isMatch = obeys;
             }
 
             if (isMatch) {
