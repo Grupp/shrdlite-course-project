@@ -85,19 +85,8 @@ module Planner {
                     }
                     let p0 = indexOf2D(n.stacks, formula.args[0]);
                     let p1 = indexOf2D(n.stacks, formula.args[1]);
-                    if (!isFinite(p0[0])  || !isFinite(p1[0])) return false;
 
-/*
-                    let p0 = indexOf2D(n.stacks, formula.args[0]);
-                    let p1 = indexOf2D(n.stacks, formula.args[1]);
-                    if (formula.relation == 'holding') {
-                        return n.holding == formula.args[0];
-                    }
-                    if (formula.args[1] == 'floor') {
-                        console.log('floor');
-                        return p0[1] == 0;
-                    }
-*/
+                    if (!isFinite(p0[0])  || !isFinite(p1[0])) return false;
 
                     switch (formula.relation) {
                         case 'leftof':
@@ -128,54 +117,9 @@ module Planner {
         };
 
         let heuristics = (n: WorldNode): number => {
-          let hArr : number[] = [];
-          let h :number;
-          let active : [number,number] = [Infinity, Infinity];
-          let destination : [number,number] = [Infinity, Infinity];
-          for (let intrp of interpretation) {
-              for (let formula of intrp) {
-                  let hsource = 0;
-                  let hdest = 0;
-                  let source = indexOf2D(n.stacks, formula.args[0]);
-                  hsource = isFinite(source[0]) || source[0] != -1 ? n.stacks[source[0]].length - source[1] - 1 : 0;
-                  if(formula.args[1] != undefined && formula.args[1] != "floor"){
-                      let dest = indexOf2D(n.stacks, formula.args[1]);
-                      hdest = isFinite(dest[0]) || dest[0] != -1 ? n.stacks[dest[0]].length - dest[1] - 1 : 0;
-                  }
-                  hArr.push(hsource + hdest);
-
-                  /*
-                  if(formula.args[0] == n.holding){
-                    h = 0;
-                  } else{
-                      active = indexOf2D(n.stacks, formula.args[0]);
-                      console.log(n.stacks.length)
-                      console.log(active[0])
-                      console.log(active[1])
-                      h = n.stacks[active[0]].length - 1 - active[1];
-                  }
-                  if(formula.args[1] == n.holding){
-                    h += 0;
-                  } else{
-                      destination = indexOf2D(n.stacks, formula.args[1]);
-                      console.log(n.stacks.length)
-                      console.log(destination[0])
-                      console.log(destination[1])
-                      // if floor
-                      if(destination[0] == -1 || !isFinite(destination[0])) {
-                        h += 0;
-                      } else {
-                        h += n.stacks[destination[0]].length - 1 - destination[1];
-                      }
-                  }
-                  hArr.push(h);
-                  */
-                }
-          }
-          console.log(hArr);
-          //return Math.min.apply(null,hArr);
-          return 0;
+            return 0;
         };
+        
         let startState = new WorldNode(state.stacks, state.arm, state.holding, state.objects);
         let graph: WorldGraph = new WorldGraph();
         let searchResult = aStarSearch<WorldNode>(graph,
@@ -211,7 +155,6 @@ module Planner {
     function indexOf2D(arr: string[][], item: string): [number, number] {
         let p: [number, number] = [0, 0];
         if (item == "floor") return [-1, -1];
-
         for(let a of arr) {
             p[1] = 0;
             for(let s of a) {
@@ -253,8 +196,10 @@ class WorldGraph implements Graph<WorldNode> {
  */
 class WorldNode {
 
+    public stacks: Stack[]
+
     constructor(
-        public stacks: Stack[],
+        stacks: Stack[],
         public armCol: number,
         public holding: string,
         public objects: { [s: string]: ObjectDefinition; }) {
