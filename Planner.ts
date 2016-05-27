@@ -82,6 +82,7 @@ module Planner {
                     if(formula.relation == 'holding')
                     {
                         isGoal =  n.holding == formula.args[0];
+                        continue;
                     }
                     let p0 = indexOf2D(n.stacks, formula.args[0]);
                     let p1 = indexOf2D(n.stacks, formula.args[1]);
@@ -117,9 +118,66 @@ module Planner {
         };
 
         let heuristics = (n: WorldNode): number => {
-            return 0;
+
+          // loop through all interpetations to find goal objects
+          let hArr : number[] = [];
+          let h : number;
+          let colA : number;
+          let rowA : number;
+          let colD : number;
+          let rowD : number;
+          for (let intrp of interpretation) {
+              for (let formula of intrp) {
+                  h = 0;
+                  let active : string = formula.args[0];
+                  let dest : string = formula.args[1];
+
+                  [colA, rowA] = indexOf2D(n.stacks, formula.args[0]);
+                  [colD, rowD] = indexOf2D(n.stacks, formula.args[1]);
+
+                  if (goal(n)){
+                    hArr.push(0);
+                    continue;
+                  }
+                  if(colA == -1){
+                    //floor
+                    // should not happen?
+                  }
+                  else if (!isFinite(colA)){
+                    // holding
+                  } else {
+                      h = 3*(n.stacks[colA].length - 1 - rowA);
+                  }
+                  if(colD == -1){
+                    //floor
+                    // find empty floor in some way
+                  }
+                  else if (!isFinite(colD)){
+                    // holding
+                  } else {
+                      h += 3*(n.stacks[colD].length - 1 - rowD);
+                  }
+
+
+                  if(formula.relation == "holding" && isFinite(colA)){
+                    h += Math.abs(colA- n.armCol);
+                  }
+
+                  if(formula.relation == "ontop" || formula.relation == "inside"){
+                    let distA : number = isFinite(colA) ? colA : n.armCol;
+                    let distB : number = isFinite(colD) ? colD : n.armCol;
+                    h += Math.abs(distA- distB);
+                  }
+
+                  hArr.push(h);
+
+                }
+
+
+          }
+            return Math.min.apply(null, hArr);;
         };
-        
+
         let startState = new WorldNode(state.stacks, state.arm, state.holding, state.objects);
         let graph: WorldGraph = new WorldGraph();
         let searchResult = aStarSearch<WorldNode>(graph,
