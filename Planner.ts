@@ -148,7 +148,9 @@ module Planner {
                   else if (!isFinite(colA)){
                     // holding
                   } else {
-                      h = 3*(n.stacks[colA].length - 1 - rowA);
+                  	if(!(formula.relation == "under")){
+				        h += 4*(n.stacks[colA].length - 1 - rowA);
+                  	}
                   }
                   if(colD == -1){
                     //floor
@@ -157,9 +159,10 @@ module Planner {
                   else if (!isFinite(colD)){
                     // holding
                   } else {
-                      h += 3*(n.stacks[colD].length - 1 - rowD);
+                  	if(!(formula.relation == "above")){
+				        h += 4*(n.stacks[colD].length - 1 - rowD);
+                  	}
                   }
-
 
                   if(formula.relation == "holding" && isFinite(colA)){
                     h += Math.abs(colA- n.armCol);
@@ -171,6 +174,7 @@ module Planner {
                     let distB : number = isFinite(colD) ? colD : n.armCol;
                     h += Math.abs(distA- distB);
                   }
+                
 
                   hArr.push(h);
 
