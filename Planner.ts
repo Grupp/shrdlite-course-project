@@ -195,10 +195,19 @@ module Planner {
             else if (prevNode.armCol > node.armCol)
                 plan.push('l');
             else if (prevNode.holding == null) {
+                let holdingObj : ObjectDefinition = node.objects[node.holding];
+                plan.push(`Picking up the ${holdingObj.color} ${holdingObj.size} ${holdingObj.form}.`);
                 plan.push('p');
             }
-            else
+            else {
+                if(prevNode.stacks[prevNode.armCol].length !=0){
+                    let key : string = prevNode.stacks[prevNode.armCol][prevNode.stacks[prevNode.armCol].length-1];
+                    let underObj : ObjectDefinition = prevNode.objects[key];
+                    plan.push(`Dropping it ${underObj.form == 'box'? 'in':'on'} the ${underObj.color} ${underObj.size} ${underObj.form}.`)
+                } else
+                    plan.push("Dropping it on the floor");
                 plan.push('d');
+            }
             prevNode = node;
         });
         return plan;
