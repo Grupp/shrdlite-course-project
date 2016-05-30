@@ -30,6 +30,8 @@ interface WorldState {
     objects: { [s:string]: ObjectDefinition; };
     /** List of predefined example sentences/utterances that the user can choose from in the UI. */
     examples: string[];
+    /** The last search path*/
+    lastPath?: SearchResult<WorldNode>;
 }
 
 type Stack = string[];

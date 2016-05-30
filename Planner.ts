@@ -30,9 +30,9 @@ module Planner {
         interpretations.forEach((interpretation) => {
             try {
                 var result: PlannerResult = <PlannerResult>interpretation;
-                result.plan = planInterpretation(result.interpretation, currentState);
-                if (result.plan.length == 0) {
-                    result.plan.push("That is already true!");
+                result.result = planInterpretation(result.interpretation, currentState);
+                if (result.result.plan.length == 0) {
+                    result.result.plan.push("That is already true!");
                 }
                 plans.push(result);
             } catch (err) {
@@ -48,13 +48,21 @@ module Planner {
     }
 
     export interface PlannerResult extends Interpreter.InterpretationResult {
-        plan: string[];
+        result: PlanResult;
     }
 
     export function stringify(result: PlannerResult): string {
-        return result.plan.join(", ");
+        return result.result.plan.join(", ");
     }
 
+    /** Contains A* result and path u
+    * which is used for the why did you do that extensions
+    */
+    class PlanResult{
+      plan: string[];
+      path : SearchResult<WorldNode>;
+
+    }
     //////////////////////////////////////////////////////////////////////
     // private functions
 
@@ -70,7 +78,7 @@ module Planner {
      * "d". The code shows how to build a plan. Each step of the plan can
      * be added using the `push` method.
      */
-    function planInterpretation(interpretation: Interpreter.DNFFormula, state: WorldState): string[] {
+    function planInterpretation(interpretation: Interpreter.DNFFormula, state: WorldState): PlanResult {
 
 
         let goal = (n: WorldNode): boolean => {
@@ -188,8 +196,11 @@ module Planner {
             goal, heuristics, 10);
         var plan: string[] = [];
 
-        let prevNode = searchResult.path.shift();
+
+        let prevNode = searchResult.path[0];
         searchResult.path.forEach(node => {
+            if(prevNode === node)
+              return;
             if (prevNode.armCol < node.armCol)
                 plan.push('r');
             else if (prevNode.armCol > node.armCol)
@@ -210,7 +221,13 @@ module Planner {
             }
             prevNode = node;
         });
-        return plan;
+
+
+        let result : PlanResult = {
+          plan : plan,
+          path : searchResult
+        }
+        return result;
     }
 
     //p[0] = col p[1] = row

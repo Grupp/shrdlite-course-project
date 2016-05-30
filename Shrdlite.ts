@@ -64,6 +64,56 @@ module Shrdlite {
             return;
         }
 
+        // History
+        try {
+          if(parses[0].parse.command == "why"){
+            // only handles an enity with no location
+            let entity : Parser.Entity = parses[0].parse.entity;
+            console.log(entity);
+            if(!entity.object.form)
+                throw "I'm sorry but my creators didn't allow me to understand such complex questions. Can you reference the object in a simpler way?"
+            if(!world.currentState.lastPath)
+                throw "You haven't told me to do anything yet. Please give me a task :)";
+
+
+            let path : WorldNode[] = world.currentState.lastPath.path;
+            let found : boolean = false;
+            let currHolding : ObjectDefinition;
+            let currKey : string;
+            let exist : boolean[];
+
+            let hasForm = entity.object.form != "anyform";
+            let hasColor = entity.object.color != null;
+            let hasSize = entity.object.size != null;
+            console.log(hasForm);
+            console.log(hasColor);
+            console.log(hasSize);
+            for (let n of path){
+              if(n.holding && currKey != n.holding){
+                 currHolding = world.currentState.objects[n.holding];
+                 currKey = n.holding;
+                 if(found){
+                   world.printSystemOutput(`To be able to move the ${currHolding.color} ${currHolding.size}  ${currHolding.form}`);
+                   return;
+                 }
+                 if ((!hasForm || currHolding.form == entity.object.form) &&
+                     (!hasColor || currHolding.color == entity.object.color) &&
+                     (!hasSize || currHolding.size == entity.object.size)){
+                   found = true;
+                 }
+              }
+            }
+            if(found){
+              world.printSystemOutput(`You just asked me to do that? Don't you remeber? Please contact a doctor if this is reccurrent since it is beyond my capabilties to handle this.`);
+              return;
+            }
+            throw `I did not move that ${entity.object.form  == "anyform" ? "object" : entity.object.form}`;
+          }
+        }
+        catch(err) {
+          world.printError("History error", err);
+          return;
+        }
         // Interpretation
         try {
             var interpretations : Interpreter.InterpretationResult[] = Interpreter.interpret(parses, world.currentState);
@@ -106,7 +156,8 @@ module Shrdlite {
             return;
         }
 
-        var finalPlan : string[] = plans[0].plan;
+        var finalPlan : string[] = plans[0].result.plan;
+        world.currentState.lastPath = plans[0].result.path;
         world.printDebugInfo("Final plan: " + finalPlan.join(", "));
         return finalPlan;
     }
