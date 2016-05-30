@@ -318,50 +318,65 @@ module Interpreter {
     }
 
     export function obeyLaws(
-        mainObject: ObjectDefinition,
-        relativeObject: ObjectDefinition,
-        relation: string
-    ): boolean {
-        if (relation == "ontop" || relation == "inside") {
-            // The floor can support at most N objects (beside each other).
-            //if (relativeObject.form == "floor" && relativeObject.column <= 0) // floor's column number are the number of free columns
-            //return false;
-            // Small objects cannot support large objects.
-            if (mainObject.size == "large" && relativeObject.size == "small")
-                return false;
-            // Balls cannot support anything.
-            if (relativeObject.form == "ball")
-                return false;
-            // Balls must be in boxes or on the floor, otherwise they roll away.
-            if (mainObject.form == "ball" &&
-                relativeObject.form != "box" &&
-                relativeObject.form != "floor")
-                return false;
-            // Objects are “inside” boxes, but “ontop” of other objects.
-            if (relativeObject.form == "box" && relation != "inside")
-                return false;
-            if (relativeObject.form != "box" && relation != "ontop")
-                return false;
-            // Small boxes cannot be supported by small bricks or pyramids.
-            if (mainObject.size == "small" && relativeObject.size == "small" && mainObject.form == "box" &&
-                (relativeObject.form == "brick" || relativeObject.form == "pyramid" || relativeObject.form == "box"))
-                return false;
-            // Large boxes cannot be supported by large pyramids.
-            if (mainObject.size == "large" && mainObject.form == "box" &&
-                relativeObject.size == "large" && relativeObject.form == "box")
-                return false;
-        }
-        if (relation == "inside") {
-          // Boxes cannot contain pyramids, planks or boxes of the same size.
-          if (mainObject.form == "box" &&
-              (relativeObject.form == "pyramid" || relativeObject.form == "plank" || relativeObject.form == "box") &&
-              mainObject.size == relativeObject.size)
-              return false;
-          }
-        return true;
+    mainObject: ObjectDefinition,
+    relativeObject: ObjectDefinition,
+    relation: string
+): boolean {
+    if (relation == "ontop" || relation == "inside") {
+        // The floor can support at most N objects (beside each other).
+        //if (relativeObject.form == "floor" && relativeObject.column <= 0) // floor's column number are the number of free columns
+        //return false;
+        // Small objects cannot support large objects.
+        if (mainObject.size == "large" && relativeObject.size == "small")
+            return false;
+        // Balls cannot support anything.
+        if (relativeObject.form == "ball")
+            return false;
+        // Balls must be in boxes or on the floor, otherwise they roll away.
+        if (mainObject.form == "ball" &&
+            relativeObject.form != "box" &&
+            relativeObject.form != "floor")
+            return false;
+        // Objects are “inside” boxes, but “ontop” of other objects.
+        if (relativeObject.form == "box" && relation != "inside")
+            return false;
+        if (relativeObject.form != "box" && relation != "ontop")
+            return false;
+        // Small boxes cannot be supported by small bricks or pyramids.
+        if (mainObject.size == "small" && relativeObject.size == "small" && mainObject.form == "box" &&
+            (relativeObject.form == "brick" || relativeObject.form == "pyramid" || relativeObject.form == "box"))
+            return false;
+        // Large boxes cannot be supported by large pyramids.
+        if (mainObject.size == "large" && mainObject.form == "box" &&
+            relativeObject.size == "large" && relativeObject.form == "pyramid")
+            return false;
+    }
+    if (relation == "inside") {
+      // Boxes cannot contain pyramids, planks or boxes of the same size.
+      if (relativeObject.form == "box" &&
+          (mainObject.form == "pyramid" || mainObject.form == "plank" || mainObject.form == "box") &&
+          mainObject.size == relativeObject.size)
+          return false;
+      }
+    if (relation == "under"){
+        if(relativeObject.size=="large" && mainObject.size == "small") // a small object can never be under a large
+            return false;
+        if(mainObject.form == "ball" ) // A ball can not be under anything
+            return false;
+        if (relativeObject.size == "large" && relativeObject.form == "box" &&
+            mainObject.size == "large" && mainObject.form == "pyramid")
+            return false;
     }
 
-    function strComp(a: string, b: string) {
-        return a == null || b == null || a.localeCompare(b) == 0;
+    if (relation == "above"){
+      if(mainObject.form == "ball" && relativeObject.form == "ball"){
+        throw "A ball cannot be above a ball"
+      }
     }
+    return true;
+}
+
+function strComp(a: string, b: string) {
+    return a == null || b == null || a.localeCompare(b) == 0;
+}
 }

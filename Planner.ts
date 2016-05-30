@@ -139,6 +139,8 @@ module Planner {
                     hArr.push(0);
                     continue;
                   }
+
+                  // count objects above the objects
                   if(colA == -1){
                     //floor
                     // should not happen?
@@ -163,7 +165,8 @@ module Planner {
                     h += Math.abs(colA- n.armCol);
                   }
 
-                  if(formula.relation == "ontop" || formula.relation == "inside"){
+                  if(formula.relation == "ontop" || formula.relation == "inside" ||
+                      formula.relation == "under" || formula.relation == "above"){
                     let distA : number = isFinite(colA) ? colA : n.armCol;
                     let distB : number = isFinite(colD) ? colD : n.armCol;
                     h += Math.abs(distA- distB);
