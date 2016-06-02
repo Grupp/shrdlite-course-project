@@ -14,59 +14,61 @@ module Parser {
     //////////////////////////////////////////////////////////////////////
     // exported functions, classes and interfaces/types
 
-    export function parse(input:string) : ParseResult[] {
+    export function parse(input: string): ParseResult[] {
         var nearleyParser = new nearley.Parser(grammar.ParserRules, grammar.ParserStart);
         var parsestr = input.toLowerCase().replace(/\W/g, "");
         try {
-            var results : Command[] = nearleyParser.feed(parsestr).results;
-        } catch(err) {
+            var results: Command[] = nearleyParser.feed(parsestr).results;
+        } catch (err) {
             if ('offset' in err) {
-                throw new Error('Parsing failed after ' + err.offset + ' characters');
+                err.offset++;
+                throw new Error(
+                    `I didn\'t understand what you meant, you lost me at the ${err.offset}${err.offset == 1 ? "st" : err.offset == 2 ? "nd" : err.offset == 3 ? "rd" : "th"} character.`);
             } else {
                 throw err;
             }
         }
         if (!results.length) {
-            throw new Error('Parsing failed, incomplete input');
+            throw new Error('Whoops, please use more words to describe what you mean');
         }
         return results.map((res) => {
             // We need to clone the parse result, because parts of it is shared with other parses
-            return {input: input, parse: clone(res)};
+            return { input: input, parse: clone(res) };
         });
     }
 
     /** The output type of the parser
     */
     export interface ParseResult {
-	/** The input string given by the user. */
-        input : string;
-	/** The `Command` structure that the parser built from `input`. */
-        parse : Command;
+        /** The input string given by the user. */
+        input: string;
+        /** The `Command` structure that the parser built from `input`. */
+        parse: Command;
     }
 
     /** The type of a command for the robot. */
     export interface Command {
-	/** The verb itself, for example "move", "take", "drop" */
-        command : string;
-	/** The object in the world, i.e. the `Entity`, which is the patient/direct object of `command`. */
-        entity? : Entity;
-	/** For verbs of motion, this specifies the destination of the action. */
-        location? : Location;
+        /** The verb itself, for example "move", "take", "drop" */
+        command: string;
+        /** The object in the world, i.e. the `Entity`, which is the patient/direct object of `command`. */
+        entity?: Entity;
+        /** For verbs of motion, this specifies the destination of the action. */
+        location?: Location;
     }
 
     /** A quantified reference (as yet uninterpreted) to an object in the world. */
     export interface Entity {
-	/** Specifies a determiner (e.g. "the", "a/an", "any", "all"). */
-        quantifier : string;
-        object : Object;
+        /** Specifies a determiner (e.g. "the", "a/an", "any", "all"). */
+        quantifier: string;
+        object: Object;
     }
 
     /** A location in the world. */
     export interface Location {
-	/** A preposition such as "beside", "above", etc. */
-        relation : string;
-	/** The entity relative to which the preposition should be interpreted. */
-        entity : Entity;
+        /** A preposition such as "beside", "above", etc. */
+        relation: string;
+        /** The entity relative to which the preposition should be interpreted. */
+        entity: Entity;
     }
 
     /** 
@@ -85,17 +87,17 @@ module Parser {
      * 
      */
     export interface Object {
-	/** Recursive reference to an object using a relative clause. */
-        object? : Object;
-	/** Location of the object in the relative clause. */
-        location? : Location;
+        /** Recursive reference to an object using a relative clause. */
+        object?: Object;
+        /** Location of the object in the relative clause. */
+        location?: Location;
         // Here is the union type divisor
-        size? : string;
-        color? : string;
-        form? : string;
+        size?: string;
+        color?: string;
+        form?: string;
     }
 
-    export function stringify(result : ParseResult) : string {
+    export function stringify(result: ParseResult): string {
         return JSON.stringify(result.parse);
     }
 
@@ -113,16 +115,16 @@ module Parser {
 // TypeScript declarations for external JavaScript modules
 
 declare module "grammar" {
-    export var ParserRules : { [s:string]: any };
-    export var ParserStart : string;
+    export var ParserRules: { [s: string]: any };
+    export var ParserStart: string;
 }
 
 
 declare module "nearley" {
     export class Parser {
-        constructor(rules: {[s:string]:any}, start: string);
-        feed(sentence: string) : {
-            results : Parser.Command[];
+        constructor(rules: { [s: string]: any }, start: string);
+        feed(sentence: string): {
+            results: Parser.Command[];
         }
     }
 }

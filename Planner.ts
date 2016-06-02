@@ -32,7 +32,7 @@ module Planner {
                 var result: PlannerResult = <PlannerResult>interpretation;
                 result.result = planInterpretation(result.interpretation, currentState);
                 if (result.result.plan.length == 0) {
-                    result.result.plan.push("That is already true!");
+                    result.result.plan.push("Excuse me but that is already true!");
                 }
                 plans.push(result);
             } catch (err) {
@@ -337,10 +337,10 @@ class WorldNode {
         else if (this.holding != null && (stackCopy[this.armCol].length == 0 ||
             Interpreter.obeyLaws(this.objects[this.holding],
                 this.objects[stackCopy[this.armCol][stackCopy[this.armCol].length - 1]],
-                "ontop") ||
+                "ontop")[0] ||
             Interpreter.obeyLaws(this.objects[this.holding],
                 this.objects[stackCopy[this.armCol][stackCopy[this.armCol].length - 1]],
-                "inside"))) {
+                "inside")[0])) {
             let newStacks = stackCopy;
             newStacks[this.armCol].push(this.holding);
             nodes.push(new WorldNode(newStacks, this.armCol, null, this.objects));

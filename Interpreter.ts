@@ -144,7 +144,7 @@ module Interpreter {
 
         switch (cmd.command) {
             case 'take':
-                if (state.holding != null) throw "Arm is holding already holding something";
+                if (state.holding != null) throw "I am already holding something, please tell me where to put it, IT IS HEAVY!";
                 actionObjects = findMatchingObjects(cmd.entity, worldObjs, true);
                 actionObjects.forEach(obj => {
                     //console.log(state.stacks[worldObjs.getValue(obj).column].length);
@@ -155,24 +155,28 @@ module Interpreter {
                 });
                 break;
             case 'put':
-                if (state.holding == null) throw "Arm is holding nothing";
+                if (state.holding == null) throw "But I have nothing to put down";
                 let holding: WorldObject = new WorldObject(state.objects[state.holding], -1, -1, state.holding);
                 targetObjects = findMatchingObjects(cmd.location.entity, worldObjs, false);
                 targetObjects.forEach(tObj => {
-                    if (state.holding != tObj && obeyLaws(holding.obj, worldObjs.getValue(tObj).obj, cmd.location.relation)) {
+                    let obeys = obeyLaws(holding.obj, worldObjs.getValue(tObj).obj, cmd.location.relation);
+                    if (state.holding != tObj && obeys[0])
                         interpretation.push([{ polarity: true, relation: cmd.location.relation, args: [state.holding, tObj] }])
-                    }
+                    else if (!obeys[0])
+                        throw obeys[1];
                 });
                 break;
             case 'move':
-                if (state.holding != null) throw "Arm is holding already holding something";
+                if (state.holding != null) throw "I am already holding something, please tell me where to put it, IT IS HEAVY!";
                 actionObjects = findMatchingObjects(cmd.entity, worldObjs, true);
                 targetObjects = findMatchingObjects(cmd.location.entity, worldObjs, false);
                 actionObjects.forEach(aObj => {
                     targetObjects.forEach(tObj => {
-                        if (aObj != tObj && obeyLaws(worldObjs.getValue(aObj).obj, worldObjs.getValue(tObj).obj, cmd.location.relation)) {
+                        let obeys = obeyLaws(worldObjs.getValue(aObj).obj, worldObjs.getValue(tObj).obj, cmd.location.relation);
+                        if (aObj != tObj && obeys[0])
                             interpretation.push([{ polarity: true, relation: cmd.location.relation, args: [aObj, tObj] }])
-                        }
+                        else if (!obeys[0])
+                            throw obeys[1];
                     });
                 });
                 break;
@@ -181,7 +185,7 @@ module Interpreter {
                 throw "Not implemented.";
         }
         if (interpretation.length == 0)
-            throw "No interpetation!";
+            throw "That is not possible to do...";
 
         return interpretation;
     }
@@ -318,65 +322,69 @@ module Interpreter {
     }
 
     export function obeyLaws(
-    mainObject: ObjectDefinition,
-    relativeObject: ObjectDefinition,
-    relation: string
-): boolean {
-    if (relation == "ontop" || relation == "inside") {
-        // The floor can support at most N objects (beside each other).
-        //if (relativeObject.form == "floor" && relativeObject.column <= 0) // floor's column number are the number of free columns
-        //return false;
-        // Small objects cannot support large objects.
-        if (mainObject.size == "large" && relativeObject.size == "small")
-            return false;
-        // Balls cannot support anything.
-        if (relativeObject.form == "ball")
-            return false;
-        // Balls must be in boxes or on the floor, otherwise they roll away.
-        if (mainObject.form == "ball" &&
-            relativeObject.form != "box" &&
-            relativeObject.form != "floor")
-            return false;
-        // Objects are “inside” boxes, but “ontop” of other objects.
-        if (relativeObject.form == "box" && relation != "inside")
-            return false;
-        if (relativeObject.form != "box" && relation != "ontop")
-            return false;
-        // Small boxes cannot be supported by small bricks or pyramids.
-        if (mainObject.size == "small" && relativeObject.size == "small" && mainObject.form == "box" &&
-            (relativeObject.form == "brick" || relativeObject.form == "pyramid" || relativeObject.form == "box"))
-            return false;
-        // Large boxes cannot be supported by large pyramids.
-        if (mainObject.size == "large" && mainObject.form == "box" &&
-            relativeObject.size == "large" && relativeObject.form == "pyramid")
-            return false;
-    }
-    if (relation == "inside") {
-      // Boxes cannot contain pyramids, planks or boxes of the same size.
-      if (relativeObject.form == "box" &&
-          (mainObject.form == "pyramid" || mainObject.form == "plank" || mainObject.form == "box") &&
-          mainObject.size == relativeObject.size)
-          return false;
-      }
-    if (relation == "under"){
-        if(relativeObject.size=="large" && mainObject.size == "small") // a small object can never be under a large
-            return false;
-        if(mainObject.form == "ball" ) // A ball can not be under anything
-            return false;
-        if (relativeObject.size == "large" && relativeObject.form == "box" &&
-            mainObject.size == "large" && mainObject.form == "pyramid")
-            return false;
+        mainObject: ObjectDefinition,
+        relativeObject: ObjectDefinition,
+        relation: string
+    ): [boolean, string] {
+        if (relation == "ontop" || relation == "inside") {
+            // The floor can support at most N objects (beside each other).
+            //if (relativeObject.form == "floor" && relativeObject.column <= 0) // floor's column number are the number of free columns
+            //return false;
+            // Small objects cannot support large objects.
+            if (mainObject.size == "large" && relativeObject.size == "small")
+                return [false, "Sorry but the small objects are to weak to support the strong large objects"];
+            // Balls cannot support anything.
+            if (relativeObject.form == "ball")
+                return [false, "Balls are so unstable, please don't use them as support for another item"];
+            // Balls must be in boxes or on the floor, otherwise they roll away.
+            if (mainObject.form == "ball" &&
+                relativeObject.form != "box" &&
+                relativeObject.form != "floor")
+                return [false, "Put the ball in a box or on the floor, otherwise it will make a mess"];
+
+            // Objects are “inside” boxes, but “ontop” of other objects.
+            if (relativeObject.form == "box" && relation != "inside")
+                return [false, "Objects are inside boxes not ontop"];
+            if (relativeObject.form != "box" && relation != "ontop")
+                return [false, "Objects are only inside boxes"];
+            // Small boxes cannot be supported by small bricks or pyramids.
+            if (mainObject.size == "small" && relativeObject.size == "small" && mainObject.form == "box" &&
+                (relativeObject.form == "brick" || relativeObject.form == "pyramid" || relativeObject.form == "box"))
+                return [false, "It's so tiny, please put on something bigger"];
+            // Large boxes cannot be supported by large pyramids.
+            if (mainObject.size == "large" && mainObject.form == "box" &&
+                relativeObject.size == "large" && relativeObject.form == "pyramid")
+                return [false, "Pyramids are pointy, boxes are not"];
+        }
+        if (relation == "inside") {
+            // Boxes cannot contain pyramids, planks or boxes of the same size.
+            if (relativeObject.form == "box" &&
+                (mainObject.form == "pyramid" || mainObject.form == "plank" || mainObject.form == "box") &&
+                mainObject.size == relativeObject.size)
+                return [false, "Sorry it will not fit even if we really push it"];
+        }
+        if (relation == "under") {
+            // a small object can never be under a large
+            if (relativeObject.size == "large" && mainObject.size == "small") 
+                return [false, "Sorry but the small objects are to weak to support the strong large objects"];
+            // A ball can not be under anything
+            if (mainObject.form == "ball") 
+                return [false, "I promise, it will fall"];
+            // Large boxes cannot be supported by large pyramids.
+            if (relativeObject.size == "large" && relativeObject.form == "box" &&
+                mainObject.size == "large" && mainObject.form == "pyramid")
+                return [false, "Pyramids are pointy and will remain so for all eternity"];
+        }
+
+        if (relation == "above") {
+            if (mainObject.form == "ball" && relativeObject.form == "ball") {
+                [false, "A ball cannot be above a ball, I promise it will fall"];
+            }
+        }
+        return [true, ""];
     }
 
-    if (relation == "above"){
-      if(mainObject.form == "ball" && relativeObject.form == "ball"){
-        throw "A ball cannot be above a ball"
-      }
+    function strComp(a: string, b: string) {
+        return a == null || b == null || a.localeCompare(b) == 0;
     }
-    return true;
-}
-
-function strComp(a: string, b: string) {
-    return a == null || b == null || a.localeCompare(b) == 0;
-}
 }

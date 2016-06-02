@@ -7,7 +7,7 @@ module Shrdlite {
 
     export function interactive(world : World) : void {
         function endlessLoop(utterance : string = "") : void {
-            var inputPrompt = "What can I do for you today? ";
+            var inputPrompt = "What can I do for you today?";
             var nextInput = () => world.readUserInput(inputPrompt, endlessLoop);
             if (utterance.trim()) {
                 var plan : string[] = splitStringIntoPlan(utterance);
