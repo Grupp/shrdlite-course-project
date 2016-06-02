@@ -36,23 +36,14 @@ the SVGWorld and the TextWorld, as well as some example worlds.
 Additionally there are lots of other glue code already implemented, including 
 an initial implementation of weighted graphs in `Graph.ts`. 
 
-### What is missing
 
-What is not implemented correctly is the natural language interpreter
-and the robot planner. What you are given are stubs that return
-a dummy interpretation and a dummy plan respectively. Your goal is to implement
-the interpreter and the planner so that the robot behaves as it should.
 
-The following functions are only templates that you have to fill with 
-intelligent code to get the project to work correctly:
+### Added code
 
-- the function `aStarSearch(...)` in the file `Graph.ts`. 
-- the function `interpretCommand(...)` in the file `Interpreter.ts`.
-- the function `planInterpretation(...)` in the file `Planner.ts`.
-- possibly you will also want to modify the function `parseUtteranceIntoPlan(...)` in the file `Shrdlite.ts`.
+- the function `aStarSearch(...)` in the file `Graph.ts` and its help functions. See `ASTAR_README.md`
+- the function `interpretCommand(...)` in the file `Interpreter.ts` and its help functions. See `INTERPRETER-README.md` 
+- the function `planInterpretation(...)` in the file `Planner.ts` and its help functions. See `PLANNER-README.md`
 
-Depending on which extension you want to implement, there might of course be several 
-other places in the code that need modification.
 
 ### About TypeScript
 
