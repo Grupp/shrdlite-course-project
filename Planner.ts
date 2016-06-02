@@ -147,6 +147,7 @@ module Planner {
                   }
                   else if (!isFinite(colA)){
                     // holding
+                    h +=1;
                   } else {
                   	if(!(formula.relation == "under")){
 				        h += 4*(n.stacks[colA].length - 1 - rowA);
@@ -158,6 +159,7 @@ module Planner {
                   }
                   else if (!isFinite(colD)){
                     // holding
+                    h += 1;
                   } else {
                   	if(!(formula.relation == "above")){
 				        h += 4*(n.stacks[colD].length - 1 - rowD);
@@ -170,11 +172,20 @@ module Planner {
 
                   if(formula.relation == "ontop" || formula.relation == "inside" ||
                       formula.relation == "under" || formula.relation == "above"){
-                    let distA : number = isFinite(colA) ? colA : n.armCol;
+                    let distA : number = isFinite(colA) ? colA  : n.armCol;
                     let distB : number = isFinite(colD) ? colD : n.armCol;
+                    //console.log(distA)
+                    //console.log(distB)
                     h += Math.abs(distA- distB);
                   }
-                
+                  if (!isFinite(colA))
+                    colA = n.armCol;
+                  if (!isFinite(colD))
+                    colD = n.armCol;
+
+                  // closest object to arm
+                  h+= Math.min(Math.abs(colA-n.armCol),Math.abs(colD-n.armCol));
+
 
                   hArr.push(h);
 
@@ -189,7 +200,7 @@ module Planner {
         let graph: WorldGraph = new WorldGraph();
         let searchResult = aStarSearch<WorldNode>(graph,
             startState,
-            goal, heuristics, 10);
+            goal, heuristics, 100);
         var plan: string[] = [];
 
         let prevNode = searchResult.path.shift();
